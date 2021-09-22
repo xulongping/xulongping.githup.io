@@ -6,5 +6,5 @@
 
 ## 2.用户画像
 
-[User profile](user_profile/用户画像.md)
+[User profile](user_profile/用户画像.html)
 
