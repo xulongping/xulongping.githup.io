@@ -37,9 +37,9 @@
 
 # 3.神经网络
 
+## 									创作不易，来点赞赏
 
-
- 
+<img src="image/wxzs.jpeg" alt="赞赏" style="zoom:33%;" />
 
 
 
