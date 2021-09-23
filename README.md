@@ -1,6 +1,6 @@
 <div align='center'><font size='70'>侠客行一</font></div>
 
-​																			**作者：徐龙平**
+<center>**作者：徐龙平**</center>
 
 # 1.推荐
 
