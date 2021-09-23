@@ -43,7 +43,7 @@
 
 <center><b>写文不易，欢迎各种花式赞赏：</b></center>																					
 
-<img src="image/wxzs.jpeg" alt="赞赏" width=50% height=50% align=center/>
+<img src="image/wxzs.jpeg" alt="赞赏" align=center/>
 
 
 
