@@ -12,7 +12,7 @@
 
 实现召回层有三个技术方案：简单快速的单策略召回、业界主流的多路召回、深度学习常用的Embedding召回
 
-基于embedding召回：最核心的召回模式是I2I、U2I
+基于[Embedding](recommend/Embedding召回.html)召回：最核心的召回模式是I2I、U2I
 
 - I2I
   - 文本类型
@@ -27,7 +27,7 @@
   - 矩阵分解
     - ALS
   - 浏览序列
-    - DSSM
+    - [DSSM](recommend/DSSM模型.html)
     - Bert+LSTM
   - 图神经网络
     - DeepWalk
