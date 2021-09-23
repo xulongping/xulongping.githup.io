@@ -1,6 +1,8 @@
-# 1. DSSM模型原理
+<center><font size='60'>DSSM模型</font></center>
 
-## 1.1 DSSM模型简介
+## 1.DSSM模型原理
+
+### 1.1 DSSM模型简介
 
 ​	DSSM模型的全称是Deep Structured Semantic Model，由微软研究院开发，利用深度神经网络把文本（句子，Query，实体等）表示成向量，应用于文本相似度匹配场景下的算法。
 
@@ -10,7 +12,7 @@
 
 
 
-## 1.2 模型结构
+### 1.2 模型结构
 
 ![img](https://upload-images.jianshu.io/upload_images/7055779-60b0aa512a9af215.png?imageMogr2/auto-orient/strip|imageView2/2)
 
