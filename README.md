@@ -37,9 +37,13 @@
 
 # 3.神经网络
 
-## 									创作不易，来点赞赏
+<center><big><b>赞赏码</b></big></center>
 
-<img src="image/wxzs.jpeg" alt="赞赏" style="zoom:30%;" />
+------
+
+<center><b>写文不易，欢迎各种花式赞赏：</b></center>																					
+
+<img src="image/wxzs.jpeg" alt="赞赏" width=50% height=50% align=center/>
 
 
 
