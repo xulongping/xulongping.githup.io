@@ -39,7 +39,7 @@
 
 ### 3.1 深度学习模型调参方法
 
-[深度学习Batch size大小对训练过程的影响](trning_parameter/深度学习Batch size调参.md)
+[深度学习Batch size大小对训练过程的影响](tuning_parameter/深度学习Batch size调参.md)
 
 ## 4.数据结构和算法
 
