@@ -27,7 +27,7 @@
   - 矩阵分解
     - ALS
   - 浏览序列
-    - [DSSM](recommend/DSSM模型.md)
+    - [DSSM](recommend/DSSM模型.html)
     - Bert+LSTM
   - 图神经网络
     - DeepWalk

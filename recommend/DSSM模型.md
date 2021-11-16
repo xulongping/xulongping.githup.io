@@ -14,7 +14,7 @@
 
 ### 1.2 模型结构
 
-![img](https://upload-images.jianshu.io/upload_images/7055779-60b0aa512a9af215.png?imageMogr2/auto-orient/strip|imageView2/2)
+![DSSM模型架构图](../image/recommend/DSSM模型架构图.png)
 
 ​	DSSM模型的整体结构图：Q代表Query信息，D表示Document信息
 
@@ -30,7 +30,7 @@
 
   如下图：#boy#会被切成#-b-o, b-o-y, o-y#
 
-  <img src="https://upload-images.jianshu.io/upload_images/7055779-21ac94f454da8873.png?imageMogr2/auto-orient/strip|imageView2/2" alt="img" style="zoom:100%;" />
+  ![DSSM-Word-hashing](../image/recommend/DSSM-Word-hashing.png)
 
   选用trigrim而不用bigrim或者unigrim的原因是为了权衡表示能力和冲突，两个单词冲突表示和两个单词编码后的表示完全相同。
 
