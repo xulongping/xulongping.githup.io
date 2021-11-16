@@ -17,7 +17,7 @@
 - I2I
   - 文本类型
     - 静态词向量表征
-      - [Word2vec](recommend/word2vec模型.md)
+      - [Word2vec](recommend/word2vec模型.html)
       - FastText
     - 动态词向量表征
       - Bert、ELMo、GPT
