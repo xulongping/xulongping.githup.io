@@ -1,8 +1,8 @@
 <center><font size='40'>深度学习Batch Size如何调参</font></center>
 
-## 1.Batch size如何调参
+# 1.Batch size如何调参
 
-
+------
 
 ## 1.1 浅析batch size影响
 
@@ -29,6 +29,8 @@
 
 
 # 2.实验证明
+
+------
 
 ​		用MINST做一下实验，超参数：SGD(lr = 0.02, momentum=0.5)，看一下不同batch size之间的区别：
 
