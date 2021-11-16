@@ -34,11 +34,11 @@
 
 ​	不同batch size下的梯度平滑度，选取每个batch size下前1000个iter的loss，来看一下loss的震荡情况：
 
-<img src="../image/tuning_paraneter/batch_size-梯度平滑度1.jpg" alt="batch_size-梯度平滑度1" style="zoom:40%;" />
+<img src="../image/tuning_paraneter/batch_size-梯度平滑度1.jpg" alt="batch_size-梯度平滑度1" style="height:450px; width: 600px" />
 
 如果感觉这张图片不太好看，可以看一下这张图：
 
-<img src="../image/tuning_paraneter/batch_size-梯度平滑度2.jpg" alt="batch_size-梯度平滑度2" style="zoom:40%;" />
+<img src="../image/tuning_paraneter/batch_size-梯度平滑度2.jpg" alt="batch_size-梯度平滑度2" style="height:450px; width: 600px" />
 
 ​		由于现在绝大多数的框架在进行mini-batch的反向传播的时候，默认都是将batch中每个instance的loss平均化之后在进行反向传播，所以相对大一点的batch size能够防止loss震荡的情况发生。从这两张图中可以看出batch size越小，相邻iter之间的loss震荡就越厉害，相应的，反传回去的梯度的变化也就越大，也就越不利于收敛。同时很有意思的一个现象，batch size为1的时候，loss到后期会发生爆炸，这主要是lr=0.02设置太大，所以某个异常值的出现会严重扰动到训练过程。**这也是为什么对于较小的batchsize，要设置小lr的原因之一，避免异常值对结果造成的扰巨大扰动。而对于较大的batchsize，要设置大一点的lr，原因则是大batch每次迭代的梯度方向相对固定，大lr可以加速其收敛过程。**
 
