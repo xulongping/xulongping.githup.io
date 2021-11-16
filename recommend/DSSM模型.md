@@ -76,17 +76,30 @@
 
 
 
+## 2.DSSM在推荐中的结构
 
+​	DSSM模型总的来说可以分层三层结构，分别是输入层、表示层和匹配层。
 
+<img src="../image/recmmend-dssm-structure.png" alt="recmmend-dssm-structure" style="zoom:80%;" />
 
+### 2.1输入层
 
+​	模型训练分层两座不同的“塔”分别进行，其实也就是不同的神经网络。其中一座塔是用于生成user embedding。输入用户特征训练数据，用户特征包括用户稠密特征和用户稀疏特征，其中用户稠密特征进行one-hot编码操作，用户稀疏特征进行embedding降维到低维空间（64或者32维），然后进行特征拼接操作。广告侧和用户侧类似。
 
+​	稠密特征的处理较为简单，稀疏特征的处理较为复杂，这里我们将稀释特征划分为两类：
 
+- 单类别稀释特征（sparse_feature_columns）：该类特征主要是指user_id、gender、age和occupation等类别编码的特征，每个客户只有唯一取值，因此只需要使用nn.Embedding进行编码，输出低维表示。
+- 变长稀疏特征（varlen_sparse_feature_columns）：该类特征一般为变长序列特征，比如用户观看点用的历史行为序列user_hist，每个客户的行为序列长度不一，因此需要将每个电影的embedding进行pooling(get_varlen_pooling_list)，输出低维表示。
 
+### 2.2 表示层
 
+​	将拼接好的特征提供给各自的深度学习网络模型。用户特征和广告特征经过各自的两个全连接层后会转化成了固定长度的向量，这里得到了维度相同的user embedding和ad embedding。各塔内部的网络层数和维度可以不同，但是输出的维度必须是一样的，这样才能匹配层进行运算。图 user embedding 和 ad embedding 维度都是 32。
 
+​	图中表示层的结构是比较简单的实现方式，只使用了两层全连接网络来作为特征抽取器，实际使用中有很多变种，比如 CNN-DSSM、LSTM-DSSM  等，现在深度学习领域公认最强的特征抽取器是 Transformer，也可以考虑在表示层中加入 Transformer。
 
+### 2.3 匹配层
 
+​	模型训练好了之后会分别得到user embedding 和ad embedding，将它们存储到 Redis 这一类内存数据库中。如果要为某个特定的广告推荐人群，则将该广告的ad embedding 分别和所有人群的user embedding 计算cos相似度。选择距离最近的N个人群子集作为广告投放人群，这样就完成了广告推荐任务。**模型训练过程中将cos函数得到的结果进入sigmoid函数和真实标签计算logloss，查看网络是否收敛。模型评估主要使用auc指标。**
 
 
 
