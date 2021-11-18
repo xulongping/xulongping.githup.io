@@ -41,7 +41,7 @@
 
 [深度学习Batch size大小对训练过程的影响](tuning_parameter/深度学习Batch size调参.html)
 
-[优化器Optimizer](优化器Optimizer.html)
+[优化器Optimizer](tuning_parameter/优化器Optimizer.html)
 
 ## 4.数据结构和算法
 
