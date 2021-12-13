@@ -33,6 +33,12 @@
     - DeepWalk
     - GraphSage
 
+### 1.3 排序
+
+[DeepFM](recommend/DeepFM.html)
+
+
+
 ## 2.NLP
 
 ## 3.神经网络
