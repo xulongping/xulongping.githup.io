@@ -1,10 +1,36 @@
 <center><font size='60'>编码总结</font></center>
 
+[TOC]
+
+
+
 ## 1.数组、链表、哈希表
 
 ### 1.1 数组
 
 ### 1.2 链表
+
+#### 1.2.1 解题
+
+**1.链表反转解题步骤**
+
+​	（1）链表反转首先需要创建3个结点：
+
+​			pre=None,   cur=head,   next=cur.next
+
+​	（2）依次遍历节点使：
+
+​				更新下一个节点：next = cur.next
+
+​				当前节点指向前一个节点：cur.next = pre
+
+​				更新前一个节点：pre = cur
+
+​				更新当前节点：cur = next
+
+​	（3）循环结束条件：cur节点为空
+
+### 1.2.2 例题
 
 **1.反转链表 - reverse linked list**
 
@@ -31,13 +57,110 @@ def swapPairs(self, head):
   
 ```
 
+3. **K个一组翻转链表**
 
+[ LeetCode 25.K 个一组翻转链表](https://leetcode-cn.com/problems/reverse-nodes-in-k-group/)
+
+```python
+def reverse(self, head: ListNode, tail:ListNode):
+    """
+    翻转一组链表，返回新的head、tail
+    """
+    prev = tail.next
+    curr = head
+    while prev != tail:                        
+        nex = curr.next
+        curr.next = prev
+        prev = curr
+        curr = nex
+    return tail, head
+
+def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:
+    # 使用指针head指向每组的头节点，这个指针每次移动k步，直至链表的尾部
+    dummyHead = ListNode(0)
+    dummyHead.next = head
+    pre = dummyHead
+    # 每个分组：tail指针从head每次移动1步，判断长度是否大于k，若是进行翻转，否则不需要翻转
+    while head:
+        tail = pre
+        for i in range(k):
+            tail = tail.next
+            if not tail:
+                return dummyHead.next
+        nex = tail.next
+        head, tail = self.reverse(head, tail)
+        # 翻转后的子链表再接回去：需要子链表head的上一个节点pre，但是对于第一个子链表，它head前面没有节点pre，需要创建一个新节点，连接到链表的头部，作为pre的初始值
+        pre.next = head
+        tail.next = nex
+        pre = tail
+        head = tail.next
+    return dummyHead.next
+```
+
+
+
+3. 
 
 ### 1.3 哈希表HashTable
+
+**1.哈希表**
+
+​		是根据关键码值（Key value）而直接进行访问的数据结构。它通过把关键码值映射到表中一个位置来访问记录，以加快查找的速度。这个映射函数叫做散列函数，存放记录的数组叫做散列表。
+
+​		用于查找数组中缺失的数组，hashset数据有去重的功能。
+
+**2.解题步骤**
+
+​		将数组元素添加进hashset数据结构中，就可以查找缺失的数值。
 
 
 
 ### 2.堆栈、队列
+
+### 2.1 解题
+
+**1.堆栈法**
+
+​		解决具有回文或字符匹配等问题的时候，可以采用堆栈数据类型来解决。比如含有退格的字符串、有效的括号、最长有效括号
+
+**2.解题步骤**
+
+（1）通常定义一个堆栈stack或者ArrayList数据类型
+
+（2）循环结束条件：遍历整个数组或着字符串
+
+### 2.2 例题
+
+**1.最长有效括号**
+
+[LeetCode 32.最长有效括号](https://leetcode-cn.com/problems/longest-valid-parentheses/)：找出最长有效（格式正确且连续）括号子串的长度
+
+```python
+def longestValidParentheses(self, s: str) -> int:
+    """
+    栈操作：
+    1.初始栈为stack=[-1]即哨兵节点，老套路。。
+    2.开始遍历s的下标
+    3.当s[i]为左括号时，无脑入栈
+    4.当s[i]为右括号时：
+       先pop栈顶
+       如果栈为空，则将哨兵pop掉了，没有正确匹配，把当前的i压栈继续当哨兵
+       当pop出的栈顶为左括号时，更新ret = max(ret, i - 此时栈顶)
+    """
+    ans, stack = 0, [-1]
+    for i in range(len(s)):
+        if s[i] == "(":
+            stack.append(i)
+        else:
+            stack.pop()
+            if not stack:
+                stack.append(i)
+            else:
+                ans = max(ans, i-stack[-1])
+    return ans
+```
+
+
 
 ## 3.树、二叉树
 
@@ -101,7 +224,27 @@ def recursion(level, param1, param2, ...):
 
 ### 5.1DFS
 
-1.递归写法模版
+####  5.1.1 解题
+
+**1.树形DFS**
+
+​		Depth First Search（DFS）深度优先搜索实现树的遍历。可以用递归（或者显示栈）来记录遍历过程中访问过的父节点。
+
+​		识别树形DFS：需要按前中后序的DFS方式遍历树
+
+
+
+**2.解题步骤**
+
+（1）通常用来处理二叉树的前序、中序、后序遍历、遍历二叉树的所有路径
+
+（2）可以采用栈数据结构存储二叉树的节点，还可以采用递归的方法
+
+（3）如果遍历二叉树的所有路径和：node存储当前遍历的节点，allsum存储当前的和。每次遍历时弹出node的最后一个节点，并添加最后一个节点的左右节点，先将右节点添加进去。
+
+
+
+**3.递归写法模版**
 
 ```python
 visited = set()
@@ -138,7 +281,29 @@ def dfs(tree):
 
 ### 5.2 BFS
 
-广度优先模版
+### 5.2.1 解题
+
+**1.树的层次遍历**
+
+​		Breadth First Search（BFS）广度优先搜索，适用于需要遍历一棵树。借助于队列数据结构，从而能保证数的节点按照他们的层数打印出来。打印完当前层所有元素，才能执行到下一层。
+
+​		所有需要遍历数且需要一层一层遍历的问题，都能用这种模式高效解决。
+
+​		识别树上的BFS模式：层序遍历
+
+
+
+**2.解题步骤**
+
+（1）用于解决二叉树按层进行遍历的情况、二叉树的最大和最小深度
+
+（2）采用队列数据结构，从树的根节点开始，每次将树的每一层节点添加进队列，再进行操作。每次将每一层呢的节点pop弹出来，将该节点的左右子节点添加进队列
+
+（3）循环结束条件：while循环，知道队列为空跳出循环
+
+
+
+**3.广度优先模版**
 
 ```python
 def bfs(graph, start, end):
@@ -499,9 +664,40 @@ def longestPalindromeSubseq(self, s: str) -> int:
     return dp[0][n-1]
 ```
 
+
+
 **2.最长公共子序列**
 
-**3.最长递增子序列（定差）**
+[LeetCode 1143.最长公共子序列](https://leetcode-cn.com/problems/longest-common-subsequence/)：返回两个字符串text1和text2最长公共子序列的长度
+
+```python
+ def longestCommonSubsequence(self, text1: str, text2: str) -> int:
+    """
+    动态规划
+    1.定义状态：dp[i][j]表示s1[0...i]和s2[0...j]最长公共子序列的长度；其中i表示s1前i个字符，j表示s2前j个字符
+    2.状态转移方程：if s[i] == s[j]:
+                      dp[i][j] = dp[i-1][j-1] + 1
+                  else:
+                      dp[i][j] = max(dp[i-1][j], dp[i][j-1])
+    3.初始化：dp[i][0] = dp[0][j] = 0空字符串与字符串s的公共子序列的长度都为0
+    4.输出：dp[len1][len2]
+    """
+    m, n = len(text1), len(text2)
+    dp = [[0] * (n + 1) for _ in range(m + 1)]
+    
+    for i in range(1, m + 1):
+        for j in range(1, n + 1):
+            if text1[i - 1] == text2[j - 1]:
+                dp[i][j] = dp[i - 1][j - 1] + 1
+            else:
+                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
+    
+    return dp[m][n]
+```
+
+
+
+**3.最长递增子序列**
 
 ```python
 # 只需要判断后一个值大于前一个值：
@@ -527,6 +723,65 @@ def lengthOfLIS(self, nums: List[int]) -> int:
             if nums[i] > nums[j]:
                 dp[i] = max(dp[i], dp[j] +1)
     return max(dp)
+```
+
+[LeetCode 647.回文子串二](https://leetcode-cn.com/problems/palindromic-substrings/)：统计字符串s回文子串的数目
+
+```python
+ def countSubstrings(self, s: str) -> int:
+    n = len(s)
+    dp = [[False] * n for _ in range(n)]
+    cnt = 0
+    for i in range(n-1, -1, -1):
+        dp[i][i] = True
+        for j in range(i, n):
+            if s[i] == s[j]:
+                dp[i][j] = True and (j-i<3 or dp[i+1][j-1])
+                if dp[i][j]:
+                    cnt += 1
+            else:
+                dp[i][j] = False
+    return cnt
+```
+
+
+
+**4.最长定差子序列**
+
+[LeetCode 1218.最长定差子序列](https://leetcode-cn.com/problems/longest-arithmetic-subsequence-of-given-difference/)
+
+问题描述：给你一个整数数组arr和一个整数difference，请你找出并返回arr中最长等差子序列的长度，该子序列中相邻元素之间的差等于difference。
+子序列：是指在不改变其余元素顺序的情况下，通过删除一些元素或不删除任何元素而从 arr 派生出来的序列。
+
+```python
+def longestSubsequence(self, arr: List[int], difference: int) -> int:
+    """
+    动态规划：
+    1.状态定义： dp[v]表示以数组中数字v为结尾的最长定差子序列，v不是索引而是数值
+    2.动态转移方程：dp[v] = dp[v - d] + 1
+    3.初始化：dp = defaultdict(int) defaultdict：如果key值不存在，不会报KeyError，而是返回默认值
+    4.输出：max(dp.values())
+    """
+    dp = defaultdict(int)
+    for v in arr:
+        dp[v] = dp[v-difference] + 1
+    return max(dp.values())
+```
+
+
+
+**5.最长等差序列**
+
+[LeetCode 1027.最长等差数列](https://leetcode-cn.com/problems/longest-arithmetic-subsequence/)：给你一个整数数组 `nums`，返回 `nums` 中最长等差子序列的**长度**。
+
+```python
+def longestArithSeqLength(self, nums: List[int]) -> int:
+    dp = dict()
+    for i in range(1, len(nums)):
+        for j in range(i):
+            step = nums[i] - nums[j]
+            dp[(i, step)] = dp.get((j, step), 1) + 1
+    return max(dp.values())
 ```
 
 
@@ -579,7 +834,9 @@ def longestPalindrome(self, s: str) -> str:
 
 
 
-**4.最大子数组和**
+#### 7.2.5 数组问题
+
+**1.最大子数组和**
 
 [LeetCode53](https://leetcode-cn.com/problems/maximum-subarray/)
 
@@ -596,7 +853,7 @@ def maxSubArray(self, nums: List[int]) -> int:
 
 
 
-**5.乘积最大子数组**
+**2.乘积最大子数组**
 
 [LeetCode152](https://leetcode-cn.com/problems/maximum-subarray/)
 
@@ -628,7 +885,7 @@ def maxProduct(self, nums: List[int]) -> int:
 
 
 
-**6.三角形最小路径和**
+**3.三角形最小路径和**
 
 [LeetCode120](https://leetcode-cn.com/problems/triangle/)
 
@@ -651,7 +908,9 @@ def minimumTotal(self, triangle: List[List[int]]) -> int:
 
 
 
-**7.买卖股票最佳时机**
+#### 7.2.6 股票问题
+
+**1.买卖股票最佳时机**
 
 [LeetCode121](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock/)    [LeetCode122](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-ii/)    [LeetCode123](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iii/)   [LeetCode188](https://leetcode-cn.com/problems/best-time-to-buy-and-sell-stock-iv/)
 
@@ -697,7 +956,313 @@ def maxProfit(self, k: int, prices: List[int]) -> int:
 
 
 
-8.无限背包问题
+## 8.滑动窗口
+
+### 8.1 解题方法
+
+**1.常用于解决的问题**
+
+​		经常用来执行**数组或是链表上某个区间（窗口）上的操作**。比如找最长的全为1的子数组长度。滑动窗口一般从第一个元素开始，一直往右一个一个元素挪动，当然了，根据题目要求，可能有固定窗口大小的情况，也有窗口大小变化的情况。
+
+​		滑动窗口经常用于寻找连续的子串和数组。
+
+​		下面是一些用来判断我们可能需要上滑动窗口策略的方法：
+
+​	（1）这个问题的输入是一些线性结构：比如链表，数组，字符串等
+​	（2）求最长/最短字符串或者某些特定的长度要求
+
+
+
+**2.解决步骤**
+
+（1）通常需要两个指针：left、right
+
+（2）循环结束条件：首先保持左指针不动，移动右指针，右指针遍历整个数组
+
+### 8.2例题
+
+**1.和为s的两个数字**
+
+[LeetCode 剑指offer 57.和为s的两个数字](https://leetcode-cn.com/problems/he-wei-sde-liang-ge-shu-zi-lcof/)
+
+```python
+def twoSum(self, nums: List[int], target: int) -> List[int]:
+    i, j = 0, len(nums) - 1
+    while i < j:
+        s = nums[i] + nums[j]
+        if s > target: 
+            j -= 1
+        elif s < target: 
+            i += 1
+        else: 
+            return nums[i], nums[j]
+    return []
+```
+
+
+
+[LeetCode 剑指offer 57-2.和为s的两个数字](https://leetcode-cn.com/problems/he-wei-sde-lian-xu-zheng-shu-xu-lie-lcof/):输入一个正整数 `target` ，输出所有和为 `target` 的连续正整数序列（至少含有两个数）。
+
+```python
+def findContinuousSequence(self, target: int) -> List[List[int]]:
+    n = target // 2 +1
+    left = right = 1
+    s = 0
+    res = []
+    while left < n:
+        while s < target:
+            s += right
+            right += 1
+        if s == target:
+            sub = [i for i in range(left, right)]
+            res.append(sub)
+        left += 1
+        right, s = left, 0
+    return res
+```
+
+
+
+**2.乘积小于K的子数组**
+
+[LeetCode 713.乘积小于K的子数组](https://leetcode-cn.com/problems/subarray-product-less-than-k/)：给定一个正整数nums和整数k，请找出该数组内乘积小于k的连续的子数组的个数。
+
+```python
+def numSubarrayProductLessThanK(self, nums: List[int], k: int) -> int:
+    """
+    采用滑动窗口的方法：如果窗口内乘积大于等于k，左指针右移，右指针右移
+                     每次增加子数组的个数就是窗口元素的个数
+    """
+    if k <= 1: return 0
+    n = len(nums)
+    prod = 1
+    left = ans = 0
+    for right, val in enumerate(nums):
+        prod *= val
+        while prod >= k:
+            prod /= nums[left]
+            left += 1
+        ans += right - left + 1
+    return ans
+```
+
+
+
+## 9. 双指针法
+
+### 9.1 解题方法
+
+**1.双指针模式**
+
+​		两个指针朝着**左右方向移动**（双指针分为同向指针和异向指针），直到他们有一个或是两个都满足某种条件。双向指针通常用在**排好序的数组或者链表**中寻找对子。比如，需要去比较数组中每个元素和其他元素的关系时，需要使用到双指针。
+
+​		使用双指针的策略方法：
+
+​	（1）一般来说，数组或是链表是排好序的，在里头找一些组合满足某些限制条件
+
+​	（2）这种组合可能是一对数、三个数、或者一个子数组
+
+
+
+**2.解题步骤**
+
+（1）通常左右两个指针分别为left和right，左右指针的初始位置不一定是0和lenght-1，还可能为0和1
+
+（2）循环结束条件：**while(left <= right)**
+
+（3）比如求两数之和、三数之和、四数之和
+
+​		在三数之和中，先选择一个target目标值，可以遍历整个数组作为两数之和。而left指针从i+1开始，right指针从length-1开始。计算方式与两数之和类似
+
+​		去重：在求多数之和中最常见的就是要去重，需要考虑两部：
+
+​		（1）target去重，去除重复的target目标和
+
+​		（2）左右指针去重，去除遍历重复的左指针和右指针
+
+
+
+### 9.2 例题
+
+**1.盛最多水的容器**
+
+[LeetCode 11.盛最多水的容器](https://leetcode-cn.com/problems/container-with-most-water/)：返回容器可以储存的最大水量
+
+```python
+def maxArea(self, height: List[int]) -> int:
+    left, right, ans = 0, len(height) - 1, 0
+    while left < right:
+        area = (right-left) * min(height[left], height[right])
+        ans = max(area, ans)
+        # height值小的移动，保留大值
+        if height[left] <= height[right]:
+            left += 1
+        else:
+            right -= 1
+    return ans
+```
+
+
+
+**2.颜色分类**
+
+[LeetCode 75.颜色分类](https://leetcode-cn.com/problems/sort-colors/)：使用O(N)、O(1)来解决
+
+```python
+def sortColors(self, nums: List[int]) -> None:
+    """
+    Do not return anything, modify nums in-place instead.
+    双指针：
+    用指针p0交互0，p1交互1，初始值都为0
+    1.连续的0之后是连续的1，因此如果将0与nums[p0]进行交换，那么可能会把一个1交换出去。当p0<p1时，已经将一些1连续地放在头部，此时一定会把一个1交换出去，导致答案错误。
+    2.因此，如果p0<p1，那么需要再将nums[i]与nums[p1]进行交换，其中i是当前遍历到的位置，在进行了第一次交换后，nums[i]的值为1，需要将这个1 放到「头部」的末端。
+    3.最后，无论是否有 p0<p1，我们需要将p0和p1均向后移动一个位置，而不是仅将p0向后移动一个位置。
+    """
+    n = len(nums)
+    p0 = p1 = 0
+    for i in range(n):
+        if nums[i] == 1:
+            nums[i], nums[p1] = nums[p1], nums[i]
+            p1 += 1
+        elif nums[i] == 0:
+            nums[i], nums[p0] = nums[p0], nums[i]
+            if p0 < p1:
+                nums[i], nums[p1] = nums[p1], nums[i]
+            p0 += 1
+            p1 += 1
+```
+
+
+
+## 10.快慢指针法
+
+### 10.1 解题
+
+**1.快慢指针模式**
+
+​		这种算法的两个指针在数组上（或链表上，序列上）的移动速度不一样。这种方法在解决有环的链表和数组时特别有用。通过控制指针不同的移动速度，最终两个指针肯定会相遇的，快的一个指针肯定会追上慢的一个。
+
+​		怎么知道需要用快慢指针模式？
+
+​		（1）问题需要处理环上的问题，比如环形链表和环形数组
+
+​		（2）当你需要知道链表的长度或者某个特别位置的信息的时候
+
+**2.解题步骤**
+
+（1）常见问题：链表的中间节点、链表的倒数第N个节点、判断是否为环形链表、快乐数
+
+（2）采用快慢两个指针，fast和slow，快指针移动2步，慢指针移动1步
+
+（3）循环结束条件：遍历整个链表
+
+
+
+### 10.2 例题
+
+**1.删除链表的倒数第N个结点**
+
+[LeetCode 19.删除链表的倒数第N个结点](https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/)：删除链表的倒数第n个结点，并返回链表的头结点
+
+```python
+def removeNthFromEnd(self, head: ListNode, n: int) -> ListNode:
+    dummy = ListNode(0, head)
+    fast, slow = head, dummy
+
+    for _ in range(n):
+        fast = fast.next
+
+    while fast:
+        fast = fast.next
+        slow = slow.next
+    slow.next = slow.next.next
+    return dummy.next
+```
+
+
+
+**2.寻找重复数**
+
+[LeetCode 287.寻找重复数](https://leetcode-cn.com/problems/find-the-duplicate-number/)：nums中只有一个重复数，返回这个重复数
+
+<img src="../image/interview/算法快慢指针.png" alt="算法快慢指针" style="zoom:50%;" />
+
+```python
+def findDuplicate(self, nums: List[int]) -> int:
+    """
+    快慢指针：通过快慢指针的方法判断数组是否有环，并找出数组存在环的入口结点
+            快指针是慢指针速度的2倍，当它们相遇时走的路程也是2倍
+            2 *(s1 + s2) = s1 + s2 + s3 + s2 ==> s1 = s3
+        如果两个指针同时同速从0和相遇位置出发，相遇的位置一定在环的入口结点
+    """
+    fast = slow = 0
+    while True:
+        slow = nums[slow]
+        fast = nums[nums[fast]]
+        # 快慢指针相遇
+        if slow == fast:
+            # 快指针从0位置出发，慢指针从相遇位置出发
+            fast = 0
+            while nums[fast] != nums[slow]:
+                fast = nums[fast]
+                slow = nums[slow]
+            return nums[slow]
+```
+
+
+
+## 11.循环排序
+
+### 11.1 解题
+
+1.循环排序法
+
+​		可以用来处理**数组中的数值限定在一定区间的问题**。这种模式一个个遍历数组的元素，如果当前这个数它不在其应该在的位置的话，咱们就把它和它应该在的那个位置上的数交换一下。
+
+​		如何鉴别这种模式？
+
+​	（1）这些问题一般设计到排序好的数组，而且数值一般满足于一定的区间
+
+​	（2）如果问题让你需要在排好序/翻转过的数组中，寻找丢失的/重复的/最小的元素
+
+2.解题步骤：
+
+（1）采用循环排序遍历的方法，这就好比一个萝卜一个坑。将nums[i]所对应的索引位置的数据标记为负数，最终查看不是负数的数据索引就是缺失的数据或者重复的数据。
+
+（2）循环结束标志：遍历整个数组
+
+### 11.2 例题
+
+**1.扑克牌中的顺子**
+
+[剑指 Offer 61. 扑克牌中的顺子](https://leetcode-cn.com/problems/bu-ke-pai-zhong-de-shun-zi-lcof/)
+
+```python
+def isStraight(self, nums: List[int]) -> bool:
+    if len(nums) != 5: return False
+    nums2 = [x for x in nums if x > 0]
+    minV = min(nums2)
+    nums3 = [0] * 5
+    for i in range(len(nums)):
+        if nums[i] == 0:
+            continue
+        else:
+            index = nums[i] - minV
+            if index <= 4 and nums3[index] == 0:
+                nums3[index] = nums[i]
+            else:
+                return False
+    return True
+        
+```
+
+
+
+
+
+
+
+
 
 
 
