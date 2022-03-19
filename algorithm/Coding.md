@@ -2,17 +2,67 @@
 
 [TOC]
 
+​		常见的数据结构：链表、二叉树、图、队列、栈、哈希表
 
+​		常见算法：二分查找、动态规划、全排列、滑动窗口、贪心、分治、排序、位运算、DFS、BFS
 
 ## 1.数组、链表、哈希表
 
 ### 1.1 数组
 
+#### 1.1.1 数组优缺点
+
+​		数组，所有元素都连续的存储于一段内存中，且每个元素占用的内存大小相同，这使得数组具备了通过下标快速访问数据的能力。
+
+​		连续存储的缺点也很明显，增加容量，删除元素的成本都很高，时间复杂度均为O(n)
+
+​		数组优缺点：
+
+- 优点：可以根据偏移快速的随机读写
+
+- 缺点：扩容，增删元素极慢
+
+  
+
 ### 1.2 链表
 
-#### 1.2.1 解题
+​		链表常见问题：插入、删除、反转、合并、查找、排序
 
-**1.链表反转解题步骤**
+#### 1.2.1 优缺点
+
+​		链表的节点在内存中是分散存储的，通过指针连在一起。
+
+​		链表的储存方式使它可以高效的在指定位置插入与删除，时间复杂度均为O(1)。
+
+​		无法高效获取长度，无法根据偏移快速访问元素，是链表的两个劣势。
+
+#### 1.2.2 解题
+
+**1.使用双指针技巧解题**
+
+​		[环形链表](https://leetcode-cn.com/problems/linked-list-cycle/)：判断链表中是否有环
+
+​		[环形链表 II](https://leetcode-cn.com/problems/linked-list-cycle-ii/)：返回链表开始入环的第一个节点。如果链表无环，则返回null
+
+​		[相交链表](https://leetcode-cn.com/problems/intersection-of-two-linked-lists/)：找出并返回两个单链表headA和headB相交的起始节点，如果两个链表不存在相交节点，返回null
+
+​		解题思路：使用两个指针分别遍历headA、headB，当走到公共node，走的步数相同
+
+​                           pA先遍历headA，再遍历headB
+
+​							pB先遍历headB，再遍历headA
+
+​		[删除链表的倒数第N个节点](https://leetcode-cn.com/problems/remove-nth-node-from-end-of-list/)：删除链表的倒数第n个节点，并返回链表的头节点
+
+​		解题思路：
+
+​		（1）常用技巧添加一个哑节点（dummy node），它的next指针指向链表的头节点，这样就不需要对头节点进行特殊的判断。
+
+​		（2）使用双指针fast、slow，fast先遍历n个节点，然后再一起遍历，直到fast指向Node，slow恰好到倒数第n个节点，删除：slow.next = slow.next.next
+
+
+
+**2.链表反转解题步骤**
 
 ​	（1）链表反转首先需要创建3个结点：
 
@@ -30,7 +80,37 @@
 
 ​	（3）循环结束条件：cur节点为空
 
-### 1.2.2 例题
+
+
+**3.链表合并**
+
+​		[合并两个有序链表](https://leetcode-cn.com/problems/merge-two-sorted-lists/)
+
+​		[合并K个升序链表](https://leetcode-cn.com/problems/merge-k-sorted-lists/)：将K个升序链表合并到一个升序链表中，返回合并后的链表
+
+​		解题思路：先合并两个有序链表，再用归并排序的方式进行递归操作。
+
+
+
+**4.排序链表**
+
+​		[排序链表](https://leetcode-cn.com/problems/sort-list/)：将链表按升序排列并返回排序后的链表
+
+​		解题思路：归并排序（递归法）
+
+​							（1）分割：使用快慢指针从链表的中间进行分割，找出mid index
+
+​												mid, slow.next = slow.next, None
+
+​							（2）递归终止：递归分割后的链表
+
+​												left, right = self.sortList(head), self.sortList(mid)
+
+​							（3）合并：合并左右子链表
+
+
+
+#### 1.2.3 例题
 
 **1.反转链表 - reverse linked list**
 
@@ -95,6 +175,76 @@ def reverseKGroup(self, head: Optional[ListNode], k: int) -> Optional[ListNode]:
         pre = tail
         head = tail.next
     return dummyHead.next
+```
+
+
+
+#### 1.2.4 链表输入处理
+
+**1.链表反转**
+
+```python
+class ListNode:
+    def __init__(self, x):
+        self.val = x
+        self.next = None
+
+class Solution:
+    def reverseList(self, head: ListNode) -> ListNode:
+        prev,curr = None, head
+        while curr:
+            curr.next, prev, curr = prev, curr, curr.next
+        return prev
+
+def stringToIntegerList(input):
+    return json.loads(input)
+
+def stringToListNode(input):
+    # Generate list from the input
+    numbers = stringToIntegerList(input)
+
+    # Now convert that list into linked list
+    dummyRoot = ListNode(0)
+    ptr = dummyRoot
+    for number in numbers:
+        ptr.next = ListNode(number)
+        ptr = ptr.next
+
+    ptr = dummyRoot.next
+    return ptr
+
+def listNodeToString(node):
+    if not node:
+        return "[]"
+
+    result = ""
+    while node:
+        result += str(node.val) + ", "
+        node = node.next
+    return "[" + result[:-2] + "]"
+
+def main():
+    import sys
+    import io
+    def readlines():
+        for line in io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8'):
+            yield line.strip('\n')
+
+    lines = readlines()
+    while True:
+        try:
+            line = next(lines)
+            head = stringToListNode(line);
+            
+            ret = Solution().reverseList(head)
+
+            out = listNodeToString(ret);
+            print(out)
+        except StopIteration:
+            break
+
+if __name__ == '__main__':
+    main()
 ```
 
 
@@ -166,6 +316,151 @@ def longestValidParentheses(self, s: str) -> int:
 
 ### 3.1 二叉树
 
+​		二叉树的常见问题：前序遍历、中序遍历、后序遍历、层次遍历
+
+#### 3.1.1 解题
+
+**1.前、中、后序遍历**
+
+​	（1）前序遍历：根、左、右
+
+​	（2）中序遍历：左、根、右
+
+​	（3）后序遍历：左、右、根 
+
+​		遍历可以采用递归遍历和非递归遍历，非递归遍历可以借助栈数据结构
+
+递归解法套路：
+
+（1）确定递归的结束条件：通常是if(root == null): return null
+
+（2）递归遍历左子树和右子树：digui(root.left)       digui(root.right)
+
+递归非常重要的点：不去管函数的内部细节是如何处理的，只看其函数作用及输入与输出
+
+**比如：求解二叉树的最大深度**
+
+- 创建一个递归函数，返回该树的最大深度
+- 找到左子树的最大深度
+- 找到右子树的最大深度
+- 返回左子树的最大深度和右子树最大深度的较大值
+
+
+
+**2.层次遍历**
+
+​		利用队列先进先出的特点，依次将结点的左、右孩子入队，然后依次出队访问，以此循环。题目要求按行输出每行结点的值，这里的**关键问题是如何分层**？
+
+
+
+**3.使用前序遍历、中序遍历、后序遍历中的两种构建二叉树**
+
+​		根据三种遍历的节点顺序，只有前序+中序、中序+后序才能实现二叉树的构造。而前序+后序不能构建二叉树，因为没法通过根节点的位置将左右子树分开。
+
+​		构造思路：先根据根节点确定左右子树，然后依次找到以每个节点的左右子树，递归实现构造二叉树。
+
+
+
+**4.求和问题**
+
+常见问题：
+
+（1）求根节点到叶子节点数字之和 leetcode129
+
+（2）二叉树中的最大路径和 leetcode124
+
+（3）路径总和 leetcode112
+
+​		判断给定的树中是否存在根节点到叶子节点的路径，路径上所有节点值相加等于目标和targetSum，返回Ture和False
+
+（4）路径总和II   leetcode113
+
+​		找出给定二叉树从根节点到叶子节点路径总和等于给定目标和的路径，返回可能的路径。
+
+（5）二叉树的直径 leetcode543
+
+​		给定一棵二叉树，你需要计算它的直径长度。一棵二叉树的直径长度是任意两个结点路径长度中的最大值。这条路径可能穿过也可能不穿过根结点。
+
+（6）二叉树的最大深度 leetcode104
+
+
+
+**5.一般二叉树的特殊情况**
+
+常见问题：
+
+
+
+**6.二叉搜索树**
+
+​		二叉搜索树：所有节点互不相等，满足：在任一节点root的左（右）子树中，所有节点（若存在）均小于（大于）root。
+
+​		任何一颗二叉树是二叉搜索树，当且仅当其中序遍历序列单调非降。
+
+​		常见问题：验证二叉搜索树、二叉搜索树第k大节点
+
+​		**解题思路：要紧紧的围绕二叉搜索树的中序遍历是非降序列来解题**
+
+​		（1）定义一个指针指向当前节点的前一个节点，利用二叉树中序遍历的思路，将两者的值进行比较，只要前大于后者就不是二叉搜索树
+
+​		（2）利用中序遍历将节点值存入一个数组中，然后遍历数组是否为非降序列。
+
+
+
+**7.二叉树的公共祖先**
+
+#### 3.1.2 例题
+
+**1.层序遍历**
+
+[二叉树的层序遍历](https://leetcode-cn.com/problems/binary-tree-level-order-traversal/)：给出二叉树根节点root，返回其结点的层序遍历。（逐层的，从左到右访问所有节点）
+
+```python
+def levelOrder(self, root: TreeNode) -> List[List[int]]:
+    ans = []
+    if not root:
+        return ans
+    stack = deque([root])
+    while stack:
+        sub = []
+        for i in range(len(stack)):
+            node = stack.popleft()
+            sub.append(node.val)
+            if node.left:
+                stack.append(node.left)
+            if node.right:
+                stack.append(node.right)
+        ans.append(sub)
+    return ans
+```
+
+
+
+**2.三种遍历中构造二叉树**
+
+[LeetCode 105.从前序与中序遍历序列构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)：给二叉树的前序遍历数组preorder、中序遍历数组inorder，构成出二叉树并返回其根节点
+
+```python
+def buildTree(self, preorder: List[int], inorder: List[int]) -> TreeNode:
+    """
+    递归：
+        1.通过前序找到root
+        2.根据root的值找到中序root的index
+        3.分别递归左右子树
+            left：前序左子树[1:i+1]；中序左子树[:i]
+            right：前序右子树[i+1:]；中序右子树[i+1:]
+    """
+    if not preorder and not inorder: return None
+
+    root = TreeNode(preorder[0])
+    i = inorder.index(preorder[0])
+    root.left = self.buildTree(preorder[1:i + 1], inorder[:i])
+    root.right = self.buildTree(preorder[i+1:], inorder[i + 1:])
+    return root
+```
+
+
+
 **1.二叉树的最近公共祖先**
 
 ```python
@@ -192,11 +487,246 @@ def lowestCommonAncestor(self, root: 'TreeNode', p: 'TreeNode', q: 'TreeNode') -
             return root
 ```
 
+#### 3.1.3 二叉树如何处理输入输出
+
+**1.输入方式为层序遍历**
+
+[LeetCode 515.在每个树行值中找最大值](https://leetcode-cn.com/problems/find-largest-value-in-each-tree-row/)：给定一棵二叉树的根节点 `root` ，请找出该二叉树中每一层的最大值。
+
+```python
+import json
+from typing import List, Optional
+
+
+# Definition for a binary tree node.
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+
+class Solution:
+    def largestValues(self, root: Optional[TreeNode]) -> List[int]:
+        ans = []
+        if not root: return ans
+        queue = [root]
+        while queue:
+            _max = queue[0].val
+            for _ in range(len(queue)):
+                node = queue.pop(0)
+                _max = max(_max, node.val)
+                if node.left:
+                    queue.append(node.left)
+                if node.right:
+                    queue.append(node.right)
+            ans.append(_max)
+        return ans
+
+
+def stringToTreeNode(input):
+    input = input.strip()
+    input = input[1:-1]
+    if not input:
+        return None
+
+    inputValues = [s.strip() for s in input.split(',')]
+    root = TreeNode(int(inputValues[0]))
+    nodeQueue = [root]
+    front = 0
+    index = 1
+    while index < len(inputValues):
+        node = nodeQueue[front]
+        front = front + 1
+
+        item = inputValues[index]
+        index = index + 1
+        if item != "null":
+            leftNumber = int(item)
+            node.left = TreeNode(leftNumber)
+            nodeQueue.append(node.left)
+
+        if index >= len(inputValues):
+            break
+
+        item = inputValues[index]
+        index = index + 1
+        if item != "null":
+            rightNumber = int(item)
+            node.right = TreeNode(rightNumber)
+            nodeQueue.append(node.right)
+    return root
+
+
+def integerListToString(nums, len_of_list=None):
+    if not len_of_list:
+        len_of_list = len(nums)
+    return json.dumps(nums[:len_of_list])
+
+
+def main():
+    import sys
+    import io
+    def readlines():
+        for line in io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8'):
+            yield line.strip('\n')
+
+    lines = readlines()
+    while True:
+        try:
+            line = next(lines)
+            root = stringToTreeNode(line);
+            ret = Solution().largestValues(root)
+            out = integerListToString(ret);
+            print(out)
+        except StopIteration:
+            break
+
+
+if __name__ == '__main__':
+    main()
+```
+
+**2.TreeNodeToString**
+
+[LeetCode 105.从前序和中序遍历序列构造二叉树](https://leetcode-cn.com/problems/construct-binary-tree-from-preorder-and-inorder-traversal/)：给定两个整数数组preorder和inorder，其中preorder是二叉树的先序遍历，inorder是同一棵树的中序遍历，请构造二叉树并返回其根节点。
+
+```python
+import json
+from typing import List
+
+
+class TreeNode:
+    def __init__(self, val=0, left=None, right=None):
+        self.val = val
+        self.left = left
+        self.right = right
+
+
+class Solution:
+    def buildTree(self, preorder: List[int], inorder: List[int]) -> TreeNode:
+        """
+        递归：
+            1.通过前序找到root
+            2.根据root的值找到中序root的index
+            3.分别递归左右子树
+                left：前序左子树[1:i+1]；中序左子树[:i]
+                right：前序右子树[i+1:]；中序右子树[i+1:]
+        """
+        if not preorder and not inorder: return None
+
+        root = TreeNode(preorder[0])
+        i = inorder.index(preorder[0])
+        root.left = self.buildTree(preorder[1:i + 1], inorder[:i])
+        root.right = self.buildTree(preorder[i + 1:], inorder[i + 1:])
+        return root
+
+
+def stringToIntegerList(input):
+    return json.loads(input)
+
+
+def treeNodeToString(root):
+    if not root:
+        return "[]"
+    output = ""
+    queue = [root]
+    current = 0
+    while current != len(queue):
+        node = queue[current]
+        current = current + 1
+
+        if not node:
+            output += "null, "
+            continue
+
+        output += str(node.val) + ", "
+        queue.append(node.left)
+        queue.append(node.right)
+    return "[" + output[:-2] + "]"
+
+
+def main():
+    import sys
+    import io
+    def readlines():
+        for line in io.TextIOWrapper(sys.stdin.buffer, encoding='utf-8'):
+            yield line.strip('\n')
+
+    lines = readlines()
+    while True:
+        try:
+            line = next(lines)
+            preorder = stringToIntegerList(line);
+            line = next(lines)
+            inorder = stringToIntegerList(line);
+
+            ret = Solution().buildTree(preorder, inorder)
+
+            out = treeNodeToString(ret);
+            print(out)
+        except StopIteration:
+            break
+
+
+if __name__ == '__main__':
+    main()
+```
+
 
 
 ## 4.递归、分治、回溯、贪心
 
 ### 4.1 递归
+
+​		**通过函数体来进行循环**
+
+#### 4.1.1递归原理
+
+​		计算n!
+
+​		n! = 1 * 2 * 3 * ... * n
+
+​		
+
+```python
+def Factorial(n):
+  if n <= 1:
+    return 1
+  return n * Factorial(n - 1)
+```
+
+
+
+Recursive
+
+factorial(6)
+
+6 * factorial(5)
+
+6 * (5 * factorial(4))
+
+6 * (5 * (4 * factorial(3)))
+
+6 * (5 * (4 * (3 * factorial(2))))
+
+6 * (5 * (4 * (3 * (2 * factorial(1)))))
+
+6 * (5 * (4 * (3 * (2 * 1))))
+
+6 * (5 * (4 * (3 * 2)))
+
+6 * (5 * (4 * 6))
+
+6 * (5 * 24)
+
+6 * 120
+
+720
+
+
+
+#### 4.1.2 递归模板
 
 递归编写模版
 
@@ -1258,7 +1788,34 @@ def isStraight(self, nums: List[int]) -> bool:
 
 
 
+## 12.二分查找
 
+### 12.1 二分查找模板
+
+**1.符合二分查找的题目**
+
+（1）Sorted（单调递增或者递减）
+
+（2）Bounded（存在上下界）
+
+（3）Accessible by index（能够通过索引访问）
+
+
+
+**2.二分查找代码模板**
+
+```python
+left, right = 0, len(nums) - 1
+while left <= right:
+  mid = (left + right) // 2
+  if nums[mid] == target:
+    // find the target
+    break or return result
+  elif nums[mid] < target:
+    left = mid + 1
+  else:
+    right = mid - 1
+```
 
 
 
