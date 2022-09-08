@@ -291,13 +291,99 @@ FM推导需要的数学基础：
 
 ​		所以实现DeepFM可以分为三部分：FM一阶线性部分、FM二阶特征交叉部分、DNN部分。
 
-### 2.1 Embedding介绍
+![DeepFM实现结构图](../image/recommend/DeepFM实现结构图.png)
+
+​	DeepFM各个模块共享同一输入，输入是由各个field的onehot编码横向拼接而成的高维向量。
+
+​	原始输入的各个field经过加权（实际上是embedding为1维）后，求和可得一次项
+
+​	原始输入的各个filed（不同长度）的embedding（等长，k维latent vector），一方面两两内积，然后求和可得二次项，另一方面作为输入全连接到DNN。
+
+
+
+### 2.1 特征处理
+
+在设计模型之前，首先要明确数据格式是怎么样的。
+
+#### 2.1.1 特征编码
+
+​	特征可以分为3类：
+
+- 连续型特征：比如数字类型特征
+- 单值离散型特征：比如gender，可选维male、female
+- 多值离散型特征：比如tag，可以有多个
+
+​	下面给出样本的例子
+
+| label | shop_score | gender | interest          |
+| ----- | ---------- | ------ | ----------------- |
+| 0     | 0.2        | male   | football, cooking |
+| 1     | 0.8        | famale | cooking           |
+
+对各field进行onehot编码：
+
+| label | shop_score | gender=m | gender=f | interest=f | interest=c |
+| ----- | ---------- | -------- | -------- | ---------- | ---------- |
+| 0     | 0.2        | 1        | 0        | 1          | 1          |
+| 1     | 0.8        | 0        | 1        | 0          | 1          |
+
+进一步，对每个field中的特征值分别单独编码或者联合编码，则确定了特征的index
+
+| field         | feature  | encoding separate | encoding union |
+| ------------- | -------- | ----------------- | -------------- |
+| shop_score(1) |          | 1                 | 1              |
+| gender(2)     | male     | 1                 | 2              |
+| gender(2)     | female   | 2                 | 3              |
+| interest(3)   | football | 1                 | 4              |
+| interest(3)   | cooking  | 2                 | 5              |
+
+​		FM需要数据格式：**数字本身（Value）、特征取值在字典中的index（ID）**。
+
+​		连续field和单值field对样本长度的贡献恒定为1，但多值离散型field可能会导致样本长度不一样。对不定长样本的处理方法自然是padding补零，选择对**每个多值field分别进行padding**，原因：1.若对样本整体进行padding，万一想进行截断，可能会截掉某些连续field和单值field，分别padding则可以分别截断，而不影响其他的field。2.对每个field不同特征单独编码互不影响，不需要维护一个全局字典，每次只需要处理一个field的特征。
+
+​		采用对每个field的**不同特征取值单独编码**的方式，可以实现一些简便性优化
+
+- 数值型field：
+  - ID：id永远是1，可以省略id，np.ones()或舍弃
+  - Value：沿用原ndarray
+- 单值离散型field：value永远是1，可以省略value	
+  - ID：sklearn.preprocessing.LabelEncoder()
+  - Value：np.ones()或舍弃
+- 多值离散型field：可以用padding+masking的方式省略id
+  - ID：sklearn.preprocessing.LabelEncoder() + padding + 加1
+  - Value：np.ones() + padding 或舍弃
+  - ID和Value列表的长度应该取该field的最长长度，每个样本的ID列表是各个特征取值的编码值，而Value在ID的非零位置上取1.
+
+给每个field分配ID和Value时，为了用0做padding，ID编码需要从1开始。
+
+代码示例：
+
+```python
+ID_shop_score = [[1], [1]] # 多余，可省略
+Value_shop_score = [[0.2], [0.8]]
+
+ID_gender = [[1], [2]]
+Value_gender = [[1], [1]] # 多余，可省略
+
+ID_interest = [[1,2], [2,0]]
+Value_gender = [[1,1], [1,0]] # 多余，可省略
+```
+
+
+
+####  2.1.2Embedding
 
 ​		DeepFM中，很重要的一项就是embedding操作，所以我们先来看看什么是embedding，可以简单的理解为，将一个特征转化为一个向量。在推荐系统当中，我们经常会遇到离散变量，如userid、itemid。对于离散变量，我们一般的做法是将其转化为one-hot，但对于itemid这种离散变量，转换为one-hot之后维度非常高，但是里面只有一个是1，其余都为0。这种情况下，我们通常就是将其转化为embedding。
 
 <img src="../image/recommend/embedding介绍.jpeg" alt="embedding介绍" style="zoom:50%;" />
 
 ​		假设一个离散变量共有5个取值，也就是说one-hot之后会变成5维，我们想将其转化为embedding表示，**其实就是接入了一层全连接神经网络。由于只有一个位置是1，其余位置是0，因此得到的embedding就是与其相连的图中红线上的权重。**
+
+​		Embedding把稀疏矩阵，通过一些线性变换（比如用全连接层进行转换，也称为查表操作），变成一个密集矩阵，这个密集矩阵用N个特征来表征所有的id（词的id，商品id），每个id之间蕴含着大量的内在关系，这些关系用嵌入层学习来的参数进行表征。
+
+​		embdding与id之间是一一映射关系，这种映射关系在反向传播的过程中一直在更新，因此能在多次epoch后，使得这个关系变成相对成熟，这个成熟的关系，就是embedding层所有权重参数。
+
+
 
 **tf.nn.embedding_lookup函数介绍：**
 
@@ -365,6 +451,26 @@ tf.Tensor(
 
 ​		二者得到的结果是一致的，因此，使用embedding_lookup的话，我们不需要将数据转化为one-hot形式，只需要传入对应的feature的index即可。
 
+
+
+**embedding_lookup源码解析：**
+
+```
+embedding_lookup(params, ids, max_norm=None, name=None)
+params = Embedding(input_dim=vocabulary_size, output_dim=embedding_dim)
+ids = looked_up_ids = KerasTensor(batch_size, padding_len)
+                    = oneHot(batch_size, padding_len, vocabulary_size)
+
+shape: 
+(batch_size, padding_len, vocabulary_size) * (vocabulary_size, embedding_dim)
+= (batch_size, padding_len, embedding_dim) = (None, 10, 16)
+
+```
+
+
+
+
+
 ### 2.2 FM一阶线性部分
 
 ​		要构建此模型，第一步是要**构造模型的输入并且对各个输入进行加权求和**，如下图绿色箭头所示：
@@ -379,7 +485,33 @@ tf.Tensor(
 
 ​		对每个embedding lookup的结果$w_i$求和。到这里为止，分别完成了对Dense特征与Sparse特征到加权求和，接下来就是将二者的结果再求和。
 
-**代码实现逻辑：**
+#### 2.2.1 如何用Embedding实现FM一次项$\sum{w_ix_i}$
+
+<img src="../image/recommend/用embedding实现FM的一阶特征.jpg" alt="用embedding实现FM的一阶特征" style="zoom:50%;" />
+
+$\sum{w_ix_i} = (\sum_{i \in N}{(w_ix_i)}) + [\sum_{i \in SC, x_{ij<>0}}{w_{ij}}] + [\sum_{i \in MC}\sum_{ x_{ij}<>0}{w_{ij}}]$
+
+​	输入数据有三种field，在one-hot处理后代入FM一次项的公式运算。每个field各有一个权值向量w，**连续型field的w长度为1，离散型field的w长度的特征的取值个数**。
+
+- 连续型field
+
+  对一次项的贡献等于自身数值乘以权值w，可以用Dense(1)层实现，任意个连续field输入到同一个Dense层即可，因此在数据处理时，可以先将所有连续型field拼成一个大矩阵。
+
+- 单值离散型field
+
+  根据样本特征取值的index，从w中取出对应权值（标量），由于离散型特征值为1，故它对一次项的贡献即取出的权值本身。取出权值的过程称为table-lookup，可以用embedding(n,1)层实现（n为该field特征取值的个数）。若将所有单值离散型field的特征值联合编码，即可使用同一个embedding table进行lookup，不需要对每个field单独声明embeding层。因此在数据处理时，可以先将所有单值离散field拼起来并联合编码。
+
+- 多值离散型field
+
+  可以同时取多个特征值，为batch training，必须对样本进行补零padding。可以在embedding中设置mask_zero=True
+
+假设有m个连续型field，n个单值离散型field，q个多值离散型field，每个多值离散型field的最长长度为：
+
+
+
+
+
+#### 2.2.2 deepctr代码实现逻辑
 
 - 构造模型的输入
 
@@ -408,7 +540,7 @@ tf.Tensor(
   - 分别将sparse、dense特征拼接到一起tf.keras.layers.Concatenate
   - 分别对sparse、dense特征加权求和，最后将二者结果求和
 
-- 
+  
 
 ### 2.3 FM二阶特征交叉部分
 
@@ -420,7 +552,17 @@ tf.Tensor(
 
 ​		$\sum_{i=1}^n\sum_{j=i+1}^n<v_i,v_j>x_ix_j = \frac{1}{2}\sum_{f=1}^k[(\sum_{i=1}^nv_{i,f}x_i)^2 - \sum_{i=1}^nv_{i,f}^2x_i^2]$
 
-**代码实现逻辑：**
+
+
+#### 2.3.1 如何用Embedding实现FM二次项$\sum_{i=1}^n\sum_{j=i+1}^nx_ix_j$
+
+![用embedding实现FM二次项](../image/recommend/用embedding实现FM二次项.jpg)
+
+由于FM的二次项是不同特征之间的交叉（一般是不同field之间的交叉），不能分field实现，必须将每个field输入embedding后拼接起来，再求二次项。
+
+
+
+#### 2.3.2 deepctr代码实现逻辑：
 
 - sparse特征embedding
 - 计算$(\sum_{i=1}^2v_{i,f})^2$部分
@@ -433,9 +575,13 @@ tf.Tensor(
 
 <img src="../image/recommend/DeepFM Dnn部分.png" alt="DeepFM Dnn部分" style="zoom:80%;" />
 
-​	这部分主要是全连接层为主，用于实现高阶的特征组合：
+​	这部分主要是全连接层为主，用于实现高阶的特征组合。
 
+#### 2.4.1 用Embedding实现DNN
 
+![用embedding实现dnn](../image/recommend/用embedding实现dnn.jpg)
+
+​		DNN是从FM二次项倒数第二步生成的None * F * K embedding张量开始，先用Flatten层平铺，然后经过若干层神经网络，每一层后面可以加上dropout防止过拟合和BatchNormalization加速收敛。
 
 ### 2.5 完善模型
 

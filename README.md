@@ -37,7 +37,7 @@
 
 [DeepFM](recommend/DeepFM.html)
 
-
+[DIN（Deep Interest Network](recommend/DIN.html)
 
 ## 2.NLP
 
