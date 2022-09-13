@@ -670,7 +670,7 @@
 
 #### 8.2.1 softmax函数的定义是什么？（知识）
 
-[softmax](../jupyter/dl/softmax.ipynb)
+[softmax](../jupyter/dl/softmax.html)
 
 #### 8.2.2 神经网络为什么会产生梯度消失现象？（知识）
 
