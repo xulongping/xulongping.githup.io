@@ -54,7 +54,15 @@
 [Data Structure && Algorithm](algorithm/DirIndex.md)
 
 ## 5.你能撕多久
-[问题](interview/interview.html)
+[推荐](interview/Recommendation.html)
+
+[Kimball维度建模](interview/Kimball维度建模.html)
+
+[Hive](interview/Hive.html)
+
+[Flink](interview/Flink.html)
+
+[Spark](interview/Spark.html)
 
 <center><big><b>赞赏码</b></big></center>
 

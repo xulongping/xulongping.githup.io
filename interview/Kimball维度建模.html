@@ -1,0 +1,598 @@
+<!doctype html>
+<html>
+<head>
+<meta charset='UTF-8'><meta name='viewport' content='width=device-width initial-scale=1'>
+
+<link href='https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext' rel='stylesheet' type='text/css' /><style type='text/css'>html {overflow-x: initial !important;}:root { --bg-color: #ffffff; --text-color: #333333; --select-text-bg-color: #B5D6FC; --select-text-font-color: auto; --monospace: "Lucida Console",Consolas,"Courier",monospace; --title-bar-height: 20px; }
+.mac-os-11 { --title-bar-height: 28px; }
+html { font-size: 14px; background-color: var(--bg-color); color: var(--text-color); font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; -webkit-font-smoothing: antialiased; }
+body { margin: 0px; padding: 0px; height: auto; bottom: 0px; top: 0px; left: 0px; right: 0px; font-size: 1rem; line-height: 1.42857143; overflow-x: hidden; background-image: inherit; background-size: inherit; background-attachment: inherit; background-origin: inherit; background-clip: inherit; background-color: inherit; tab-size: 4; background-position: inherit inherit; background-repeat: inherit inherit; }
+iframe { margin: auto; }
+a.url { word-break: break-all; }
+a:active, a:hover { outline: 0px; }
+.in-text-selection, ::selection { text-shadow: none; background: var(--select-text-bg-color); color: var(--select-text-font-color); }
+#write { margin: 0px auto; height: auto; width: inherit; word-break: normal; word-wrap: break-word; position: relative; white-space: normal; overflow-x: visible; padding-top: 36px; }
+#write.first-line-indent p { text-indent: 2em; }
+#write.first-line-indent li p, #write.first-line-indent p * { text-indent: 0px; }
+#write.first-line-indent li { margin-left: 2em; }
+.for-image #write { padding-left: 8px; padding-right: 8px; }
+body.typora-export { padding-left: 30px; padding-right: 30px; }
+.typora-export .footnote-line, .typora-export li, .typora-export p { white-space: pre-wrap; }
+.typora-export .task-list-item input { pointer-events: none; }
+@media screen and (max-width: 500px) { 
+  body.typora-export { padding-left: 0px; padding-right: 0px; }
+  #write { padding-left: 20px; padding-right: 20px; }
+  .CodeMirror-sizer { margin-left: 0px !important; }
+  .CodeMirror-gutters { display: none !important; }
+}
+#write li > figure:last-child { margin-bottom: 0.5rem; }
+#write ol, #write ul { position: relative; }
+img { max-width: 100%; vertical-align: middle; image-orientation: from-image; }
+button, input, select, textarea { color: inherit; font-family: inherit; font-size: inherit; font-style: inherit; font-variant-caps: inherit; font-weight: inherit; font-stretch: inherit; line-height: inherit; }
+input[type="checkbox"], input[type="radio"] { line-height: normal; padding: 0px; }
+*, ::after, ::before { box-sizing: border-box; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p, #write pre { width: inherit; }
+#write h1, #write h2, #write h3, #write h4, #write h5, #write h6, #write p { position: relative; }
+p { line-height: inherit; }
+h1, h2, h3, h4, h5, h6 { break-after: avoid-page; break-inside: avoid; orphans: 4; }
+p { orphans: 4; }
+h1 { font-size: 2rem; }
+h2 { font-size: 1.8rem; }
+h3 { font-size: 1.6rem; }
+h4 { font-size: 1.4rem; }
+h5 { font-size: 1.2rem; }
+h6 { font-size: 1rem; }
+.md-math-block, .md-rawblock, h1, h2, h3, h4, h5, h6, p { margin-top: 1rem; margin-bottom: 1rem; }
+.hidden { display: none; }
+.md-blockmeta { color: rgb(204, 204, 204); font-weight: 700; font-style: italic; }
+a { cursor: pointer; }
+sup.md-footnote { padding: 2px 4px; background-color: rgba(238, 238, 238, 0.7); color: rgb(85, 85, 85); border-top-left-radius: 4px; border-top-right-radius: 4px; border-bottom-right-radius: 4px; border-bottom-left-radius: 4px; cursor: pointer; }
+sup.md-footnote a, sup.md-footnote a:hover { color: inherit; text-transform: inherit; text-decoration: inherit; }
+#write input[type="checkbox"] { cursor: pointer; width: inherit; height: inherit; }
+figure { overflow-x: auto; margin: 1.2em 0px; max-width: calc(100% + 16px); padding: 0px; }
+figure > table { margin: 0px; }
+tr { break-inside: avoid; break-after: auto; }
+thead { display: table-header-group; }
+table { border-collapse: collapse; border-spacing: 0px; width: 100%; overflow: auto; break-inside: auto; text-align: left; }
+table.md-table td { min-width: 32px; }
+.CodeMirror-gutters { border-right-width: 0px; background-color: inherit; }
+.CodeMirror-linenumber { }
+.CodeMirror { text-align: left; }
+.CodeMirror-placeholder { opacity: 0.3; }
+.CodeMirror pre { padding: 0px 4px; }
+.CodeMirror-lines { padding: 0px; }
+div.hr:focus { cursor: none; }
+#write pre { white-space: pre-wrap; }
+#write.fences-no-line-wrapping pre { white-space: pre; }
+#write pre.ty-contain-cm { white-space: normal; }
+.CodeMirror-gutters { margin-right: 4px; }
+.md-fences { font-size: 0.9rem; display: block; break-inside: avoid; text-align: left; overflow: visible; white-space: pre; background-image: inherit; background-size: inherit; background-attachment: inherit; background-origin: inherit; background-clip: inherit; background-color: inherit; position: relative !important; background-position: inherit inherit; background-repeat: inherit inherit; }
+.md-fences-adv-panel { width: 100%; margin-top: 10px; text-align: center; padding-top: 0px; padding-bottom: 8px; overflow-x: auto; }
+#write .md-fences.mock-cm { white-space: pre-wrap; }
+.md-fences.md-fences-with-lineno { padding-left: 0px; }
+#write.fences-no-line-wrapping .md-fences.mock-cm { white-space: pre; overflow-x: auto; }
+.md-fences.mock-cm.md-fences-with-lineno { padding-left: 8px; }
+.CodeMirror-line, twitterwidget { break-inside: avoid; }
+.footnotes { opacity: 0.8; font-size: 0.9rem; margin-top: 1em; margin-bottom: 1em; }
+.footnotes + .footnotes { margin-top: 0px; }
+.md-reset { margin: 0px; padding: 0px; border: 0px; outline: 0px; vertical-align: top; text-decoration: none; text-shadow: none; float: none; position: static; width: auto; height: auto; white-space: nowrap; cursor: inherit; line-height: normal; font-weight: 400; text-align: left; box-sizing: content-box; direction: ltr; background-position: 0px 0px; background-repeat: initial initial; }
+li div { padding-top: 0px; }
+blockquote { margin: 1rem 0px; }
+li .mathjax-block, li p { margin: 0.5rem 0px; }
+li blockquote { margin: 1rem 0px; }
+li { margin: 0px; position: relative; }
+blockquote > :last-child { margin-bottom: 0px; }
+blockquote > :first-child, li > :first-child { margin-top: 0px; }
+.footnotes-area { color: rgb(136, 136, 136); margin-top: 0.714rem; padding-bottom: 0.143rem; white-space: normal; }
+#write .footnote-line { white-space: pre-wrap; }
+@media print { 
+  body, html { border: 1px solid transparent; height: 99%; break-after: avoid; break-before: avoid; font-variant-ligatures: no-common-ligatures; }
+  #write { margin-top: 0px; padding-top: 0px; border-color: transparent !important; }
+  .typora-export * { -webkit-print-color-adjust: exact; }
+  .typora-export #write { break-after: avoid; }
+  .typora-export #write::after { height: 0px; }
+  .is-mac table { break-inside: avoid; }
+  .typora-export-show-outline .typora-export-sidebar { display: none; }
+}
+.footnote-line { margin-top: 0.714em; font-size: 0.7em; }
+a img, img a { cursor: pointer; }
+pre.md-meta-block { font-size: 0.8rem; min-height: 0.8rem; white-space: pre-wrap; background-color: rgb(204, 204, 204); display: block; overflow-x: hidden; background-position: initial initial; background-repeat: initial initial; }
+p > .md-image:only-child:not(.md-img-error) img, p > img:only-child { display: block; margin: auto; }
+#write.first-line-indent p > .md-image:only-child:not(.md-img-error) img { left: -2em; position: relative; }
+p > .md-image:only-child { display: inline-block; width: 100%; }
+#write .MathJax_Display { margin: 0.8em 0px 0px; }
+.md-math-block { width: 100%; }
+.md-math-block:not(:empty)::after { display: none; }
+.MathJax_ref { fill: currentcolor; }
+[contenteditable="true"]:active, [contenteditable="true"]:focus, [contenteditable="false"]:active, [contenteditable="false"]:focus { outline: 0px; box-shadow: none; }
+.md-task-list-item { position: relative; list-style-type: none; }
+.task-list-item.md-task-list-item { padding-left: 0px; }
+.md-task-list-item > input { position: absolute; top: 0px; left: 0px; margin-left: -1.2em; margin-top: calc(1em - 10px); border: none; }
+.math { font-size: 1rem; }
+.md-toc { min-height: 3.58rem; position: relative; font-size: 0.9rem; border-top-left-radius: 10px; border-top-right-radius: 10px; border-bottom-right-radius: 10px; border-bottom-left-radius: 10px; }
+.md-toc-content { position: relative; margin-left: 0px; }
+.md-toc-content::after, .md-toc::after { display: none; }
+.md-toc-item { display: block; color: rgb(65, 131, 196); }
+.md-toc-item a { text-decoration: none; }
+.md-toc-inner:hover { text-decoration: underline; }
+.md-toc-inner { display: inline-block; cursor: pointer; }
+.md-toc-h1 .md-toc-inner { margin-left: 0px; font-weight: 700; }
+.md-toc-h2 .md-toc-inner { margin-left: 2em; }
+.md-toc-h3 .md-toc-inner { margin-left: 4em; }
+.md-toc-h4 .md-toc-inner { margin-left: 6em; }
+.md-toc-h5 .md-toc-inner { margin-left: 8em; }
+.md-toc-h6 .md-toc-inner { margin-left: 10em; }
+@media screen and (max-width: 48em) { 
+  .md-toc-h3 .md-toc-inner { margin-left: 3.5em; }
+  .md-toc-h4 .md-toc-inner { margin-left: 5em; }
+  .md-toc-h5 .md-toc-inner { margin-left: 6.5em; }
+  .md-toc-h6 .md-toc-inner { margin-left: 8em; }
+}
+a.md-toc-inner { font-size: inherit; font-style: inherit; font-weight: inherit; line-height: inherit; }
+.footnote-line a:not(.reversefootnote) { color: inherit; }
+.md-attr { display: none; }
+.md-fn-count::after { content: "."; }
+code, pre, samp, tt { font-family: var(--monospace); }
+kbd { margin: 0px 0.1em; padding: 0.1em 0.6em; font-size: 0.8em; color: rgb(36, 39, 41); background-color: rgb(255, 255, 255); border: 1px solid rgb(173, 179, 185); border-top-left-radius: 3px; border-top-right-radius: 3px; border-bottom-right-radius: 3px; border-bottom-left-radius: 3px; box-shadow: rgba(12, 13, 14, 0.2) 0px 1px 0px, rgb(255, 255, 255) 0px 0px 0px 2px inset; white-space: nowrap; vertical-align: middle; background-position: initial initial; background-repeat: initial initial; }
+.md-comment { color: rgb(162, 127, 3); opacity: 0.6; font-family: var(--monospace); }
+code { text-align: left; }
+a.md-print-anchor { white-space: pre !important; border: none !important; display: inline-block !important; position: absolute !important; width: 1px !important; right: 0px !important; outline: 0px !important; text-shadow: initial !important; background-position: 0px 0px !important; background-repeat: initial initial !important; }
+.os-windows.monocolor-emoji .md-emoji { font-family: "Segoe UI Symbol", sans-serif; }
+.md-diagram-panel > svg { max-width: 100%; }
+[lang="flow"] svg, [lang="mermaid"] svg { max-width: 100%; height: auto; }
+[lang="mermaid"] .node text { font-size: 1rem; }
+table tr th { border-bottom-width: 0px; }
+video { max-width: 100%; display: block; margin: 0px auto; }
+iframe { max-width: 100%; width: 100%; border: none; }
+.highlight td, .highlight tr { border: 0px; }
+mark { background-color: rgb(255, 255, 0); color: rgb(0, 0, 0); background-position: initial initial; background-repeat: initial initial; }
+.md-html-inline .md-plain, .md-html-inline strong, mark .md-inline-math, mark strong { color: inherit; }
+.md-expand mark .md-meta { opacity: 0.3 !important; }
+mark .md-meta { color: rgb(0, 0, 0); }
+@media print { 
+  .typora-export h1, .typora-export h2, .typora-export h3, .typora-export h4, .typora-export h5, .typora-export h6 { break-inside: avoid; }
+}
+.md-diagram-panel .messageText { stroke: none !important; }
+.md-diagram-panel .start-state { fill: var(--node-fill); }
+.md-diagram-panel .edgeLabel rect { opacity: 1 !important; }
+.md-fences.md-fences-math { font-size: 1em; }
+.md-fences-advanced:not(.md-focus) { padding: 0px; white-space: nowrap; border: 0px; }
+.md-fences-advanced:not(.md-focus) { background-image: inherit; background-size: inherit; background-attachment: inherit; background-origin: inherit; background-clip: inherit; background-color: inherit; background-position: inherit inherit; background-repeat: inherit inherit; }
+.typora-export-show-outline .typora-export-content { max-width: 1440px; margin: auto; display: flex; flex-direction: row; }
+.typora-export-sidebar { width: 300px; font-size: 0.8rem; margin-top: 80px; margin-right: 18px; }
+.typora-export-show-outline #write { --webkit-flex: 2; flex: 2 1 0%; }
+.typora-export-sidebar .outline-content { position: fixed; top: 0px; max-height: 100%; overflow: hidden auto; padding-bottom: 30px; padding-top: 60px; width: 300px; }
+@media screen and (max-width: 1024px) { 
+  .typora-export-sidebar, .typora-export-sidebar .outline-content { width: 240px; }
+}
+@media screen and (max-width: 800px) { 
+  .typora-export-sidebar { display: none; }
+}
+.outline-content li, .outline-content ul { margin-left: 0px; margin-right: 0px; padding-left: 0px; padding-right: 0px; list-style: none; }
+.outline-content ul { margin-top: 0px; margin-bottom: 0px; }
+.outline-content strong { font-weight: 400; }
+.outline-expander { width: 1rem; height: 1.428571429rem; position: relative; display: table-cell; vertical-align: middle; cursor: pointer; padding-left: 4px; }
+.outline-expander::before { content: ''; position: relative; font-family: Ionicons; display: inline-block; font-size: 8px; vertical-align: middle; }
+.outline-item { padding-top: 3px; padding-bottom: 3px; cursor: pointer; }
+.outline-expander:hover::before { content: ''; }
+.outline-h1 > .outline-item { padding-left: 0px; }
+.outline-h2 > .outline-item { padding-left: 1em; }
+.outline-h3 > .outline-item { padding-left: 2em; }
+.outline-h4 > .outline-item { padding-left: 3em; }
+.outline-h5 > .outline-item { padding-left: 4em; }
+.outline-h6 > .outline-item { padding-left: 5em; }
+.outline-label { cursor: pointer; display: table-cell; vertical-align: middle; text-decoration: none; color: inherit; }
+.outline-label:hover { text-decoration: underline; }
+.outline-item:hover { border-color: rgb(245, 245, 245); background-color: var(--item-hover-bg-color); }
+.outline-item:hover { margin-left: -28px; margin-right: -28px; border-left-width: 28px; border-left-style: solid; border-left-color: transparent; border-right-width: 28px; border-right-style: solid; border-right-color: transparent; }
+.outline-item-single .outline-expander::before, .outline-item-single .outline-expander:hover::before { display: none; }
+.outline-item-open > .outline-item > .outline-expander::before { content: ''; }
+.outline-children { display: none; }
+.info-panel-tab-wrapper { display: none; }
+.outline-item-open > .outline-children { display: block; }
+.typora-export .outline-item { padding-top: 1px; padding-bottom: 1px; }
+.typora-export .outline-item:hover { margin-right: -8px; border-right-width: 8px; border-right-style: solid; border-right-color: transparent; }
+.typora-export .outline-expander::before { content: "+"; font-family: inherit; top: -1px; }
+.typora-export .outline-expander:hover::before, .typora-export .outline-item-open > .outline-item > .outline-expander::before { content: '−'; }
+.typora-export-collapse-outline .outline-children { display: none; }
+.typora-export-collapse-outline .outline-item-open > .outline-children, .typora-export-no-collapse-outline .outline-children { display: block; }
+.typora-export-no-collapse-outline .outline-expander::before { content: "" !important; }
+.typora-export-show-outline .outline-item-active > .outline-item .outline-label { font-weight: 700; }
+.md-inline-math-container mjx-container { zoom: 0.95; }
+
+
+:root {
+    --side-bar-bg-color: #fafafa;
+    --control-text-color: #777;
+}
+
+@include-when-export url(https://fonts.loli.net/css?family=Open+Sans:400italic,700italic,700,400&subset=latin,latin-ext);
+
+/* open-sans-regular - latin-ext_latin */
+  /* open-sans-italic - latin-ext_latin */
+    /* open-sans-700 - latin-ext_latin */
+    /* open-sans-700italic - latin-ext_latin */
+  html {
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+}
+
+body {
+    font-family: "Open Sans","Clear Sans", "Helvetica Neue", Helvetica, Arial, 'Segoe UI Emoji', sans-serif;
+    color: rgb(51, 51, 51);
+    line-height: 1.6;
+}
+
+#write {
+    max-width: 860px;
+  	margin: 0 auto;
+  	padding: 30px;
+    padding-bottom: 100px;
+}
+
+@media only screen and (min-width: 1400px) {
+	#write {
+		max-width: 1024px;
+	}
+}
+
+@media only screen and (min-width: 1800px) {
+	#write {
+		max-width: 1200px;
+	}
+}
+
+#write > ul:first-child,
+#write > ol:first-child{
+    margin-top: 30px;
+}
+
+a {
+    color: #4183C4;
+}
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    position: relative;
+    margin-top: 1rem;
+    margin-bottom: 1rem;
+    font-weight: bold;
+    line-height: 1.4;
+    cursor: text;
+}
+h1:hover a.anchor,
+h2:hover a.anchor,
+h3:hover a.anchor,
+h4:hover a.anchor,
+h5:hover a.anchor,
+h6:hover a.anchor {
+    text-decoration: none;
+}
+h1 tt,
+h1 code {
+    font-size: inherit;
+}
+h2 tt,
+h2 code {
+    font-size: inherit;
+}
+h3 tt,
+h3 code {
+    font-size: inherit;
+}
+h4 tt,
+h4 code {
+    font-size: inherit;
+}
+h5 tt,
+h5 code {
+    font-size: inherit;
+}
+h6 tt,
+h6 code {
+    font-size: inherit;
+}
+h1 {
+    font-size: 2.25em;
+    line-height: 1.2;
+    border-bottom: 1px solid #eee;
+}
+h2 {
+    font-size: 1.75em;
+    line-height: 1.225;
+    border-bottom: 1px solid #eee;
+}
+
+/*@media print {
+    .typora-export h1,
+    .typora-export h2 {
+        border-bottom: none;
+        padding-bottom: initial;
+    }
+
+    .typora-export h1::after,
+    .typora-export h2::after {
+        content: "";
+        display: block;
+        height: 100px;
+        margin-top: -96px;
+        border-top: 1px solid #eee;
+    }
+}*/
+
+h3 {
+    font-size: 1.5em;
+    line-height: 1.43;
+}
+h4 {
+    font-size: 1.25em;
+}
+h5 {
+    font-size: 1em;
+}
+h6 {
+   font-size: 1em;
+    color: #777;
+}
+p,
+blockquote,
+ul,
+ol,
+dl,
+table{
+    margin: 0.8em 0;
+}
+li>ol,
+li>ul {
+    margin: 0 0;
+}
+hr {
+    height: 2px;
+    padding: 0;
+    margin: 16px 0;
+    background-color: #e7e7e7;
+    border: 0 none;
+    overflow: hidden;
+    box-sizing: content-box;
+}
+
+li p.first {
+    display: inline-block;
+}
+ul,
+ol {
+    padding-left: 30px;
+}
+ul:first-child,
+ol:first-child {
+    margin-top: 0;
+}
+ul:last-child,
+ol:last-child {
+    margin-bottom: 0;
+}
+blockquote {
+    border-left: 4px solid #dfe2e5;
+    padding: 0 15px;
+    color: #777777;
+}
+blockquote blockquote {
+    padding-right: 0;
+}
+table {
+    padding: 0;
+    word-break: initial;
+}
+table tr {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 0;
+}
+table tr:nth-child(2n),
+thead {
+    background-color: #f8f8f8;
+}
+table th {
+    font-weight: bold;
+    border: 1px solid #dfe2e5;
+    border-bottom: 0;
+    margin: 0;
+    padding: 6px 13px;
+}
+table td {
+    border: 1px solid #dfe2e5;
+    margin: 0;
+    padding: 6px 13px;
+}
+table th:first-child,
+table td:first-child {
+    margin-top: 0;
+}
+table th:last-child,
+table td:last-child {
+    margin-bottom: 0;
+}
+
+.CodeMirror-lines {
+    padding-left: 4px;
+}
+
+.code-tooltip {
+    box-shadow: 0 1px 1px 0 rgba(0,28,36,.3);
+    border-top: 1px solid #eef2f2;
+}
+
+.md-fences,
+code,
+tt {
+    border: 1px solid #e7eaed;
+    background-color: #f8f8f8;
+    border-radius: 3px;
+    padding: 0;
+    padding: 2px 4px 0px 4px;
+    font-size: 0.9em;
+}
+
+code {
+    background-color: #f3f4f4;
+    padding: 0 2px 0 2px;
+}
+
+.md-fences {
+    margin-bottom: 15px;
+    margin-top: 15px;
+    padding-top: 8px;
+    padding-bottom: 6px;
+}
+
+
+.md-task-list-item > input {
+  margin-left: -1.3em;
+}
+
+@media print {
+    html {
+        font-size: 13px;
+    }
+    table,
+    pre {
+        page-break-inside: avoid;
+    }
+    pre {
+        word-wrap: break-word;
+    }
+}
+
+.md-fences {
+	background-color: #f8f8f8;
+}
+#write pre.md-meta-block {
+	padding: 1rem;
+    font-size: 85%;
+    line-height: 1.45;
+    background-color: #f7f7f7;
+    border: 0;
+    border-radius: 3px;
+    color: #777777;
+    margin-top: 0 !important;
+}
+
+.mathjax-block>.code-tooltip {
+	bottom: .375rem;
+}
+
+.md-mathjax-midline {
+    background: #fafafa;
+}
+
+#write>h3.md-focus:before{
+	left: -1.5625rem;
+	top: .375rem;
+}
+#write>h4.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h5.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+#write>h6.md-focus:before{
+	left: -1.5625rem;
+	top: .285714286rem;
+}
+.md-image>.md-meta {
+    /*border: 1px solid #ddd;*/
+    border-radius: 3px;
+    padding: 2px 0px 0px 4px;
+    font-size: 0.9em;
+    color: inherit;
+}
+
+.md-tag {
+    color: #a7a7a7;
+    opacity: 1;
+}
+
+.md-toc { 
+    margin-top:20px;
+    padding-bottom:20px;
+}
+
+.sidebar-tabs {
+    border-bottom: none;
+}
+
+#typora-quick-open {
+    border: 1px solid #ddd;
+    background-color: #f8f8f8;
+}
+
+#typora-quick-open-item {
+    background-color: #FAFAFA;
+    border-color: #FEFEFE #e5e5e5 #e5e5e5 #eee;
+    border-style: solid;
+    border-width: 1px;
+}
+
+/** focus mode */
+.on-focus-mode blockquote {
+    border-left-color: rgba(85, 85, 85, 0.12);
+}
+
+header, .context-menu, .megamenu-content, footer{
+    font-family: "Segoe UI", "Arial", sans-serif;
+}
+
+.file-node-content:hover .file-node-icon,
+.file-node-content:hover .file-node-open-state{
+    visibility: visible;
+}
+
+.mac-seamless-mode #typora-sidebar {
+    background-color: #fafafa;
+    background-color: var(--side-bar-bg-color);
+}
+
+.md-lang {
+    color: #b4654d;
+}
+
+/*.html-for-mac {
+    --item-hover-bg-color: #E6F0FE;
+}*/
+
+#md-notification .btn {
+    border: 0;
+}
+
+.dropdown-menu .divider {
+    border-color: #e5e5e5;
+    opacity: 0.4;
+}
+
+.ty-preferences .window-content {
+    background-color: #fafafa;
+}
+
+.ty-preferences .nav-group-item.active {
+    color: white;
+    background: #999;
+}
+
+.menu-item-container a.menu-style-btn {
+    background-color: #f5f8fa;
+    background-image: linear-gradient( 180deg , hsla(0, 0%, 100%, 0.8), hsla(0, 0%, 100%, 0)); 
+}
+
+
+ @media print { @page {margin: 0 0 0 0;} body.typora-export {padding-left: 0; padding-right: 0;} #write {padding:0;}}
+</style><title>Kimball维度建模</title>
+</head>
+<body class='typora-export'><div class='typora-export-content'>
+<div id='write'  class=''><center><font size="60">Kimball维度建模</font></center><h2 id='1基本概念'><span>1.基本概念</span></h2><h3 id='11-名称解释'><span>1.1 名称解释</span></h3><p><strong><span>1.什么是业务过程？</span></strong></p><p><span>		</span><span>业务过程是组织完成的操作型活动，例如，获得订单，处理保险索赔、学生课程注册、每个月账单的快照。</span></p><p><span>		</span><span>每个业务过程对应企业数据仓库总线矩阵的一行</span></p><p>&nbsp;</p><p><strong><span>2.交易域涉及哪些业务过程？</span></strong></p><p>&nbsp;</p><p><strong><span>3.流量域涉及哪些业务过程？</span></strong></p><p><span>		</span><span>元素事件：加载、曝光、点击、关闭</span></p><p><span>		</span><span>页面浏览时长、视频观看时长</span></p><p>&nbsp;</p><p><strong><span>4. 4步骤维度设计过程</span></strong></p><p><span>（1）选择业务过程</span></p><p><span>（2）声明粒度</span></p><p><span>（3）确认维度</span></p><p><span>（4）确认事实</span></p><p><strong><span>5. 粒度</span></strong></p><p><span>		</span><span>事实表中一条记录所表达的业务细节程度被称为粒度</span></p><p><span>		</span><span>在选择维度或事实前必须声明粒度，因为每个候选维度或事实必须与定义的粒度保持一致。</span></p><p><span>		</span><span>强烈建议从关注原子级粒度数据开始设计，因为原子粒度数据能够承受无法预期的用户查询。</span></p><p><strong><span>6.描述环境的维度</span></strong></p><p><span>		</span><span>维度提供围绕某一业务过程事件所涉及的“谁、什么、何处、何时、为什么、如何”等背景。</span></p><p><strong><span>7. 什么是度量？</span></strong></p><p><span>		</span><span>事实涉及来自业务过程事件的度量，基本上都是以数量值表示，例如：金额、用户数等</span></p><p><strong><span>8.什么是星型模型？什么是雪花模型？他们有什么区别？分布应用场景是什么？</span></strong></p><p><strong><span>9.订单表和订单明细表的理解</span></strong></p><p><span>		</span><span>在事务数据库中要分2张表存放：订单信息、订单明细表（订单对应商品的信息）</span></p><p><span>		</span><span>订单明细表：一把包括 商品的编号、商品的数量、商品的价格、商品的所属单号</span></p><p><span>		</span><span>订单表：一般包括 买家收货信息、支付金额</span></p><p><strong><span>10.维度退化</span></strong></p><p><span>		</span><span>维度属性存储到事实表中</span></p><p><strong><span>11.代理键和自然键</span></strong></p><p><span>		</span><span>都是用于标识某维度的具体值，</span></p><p><span>		</span><span>代理键：是不具有业务含义的键，一般用于处理缓慢变化维</span></p><p><span>		</span><span>自然键：是具有业务含义的键</span></p><p><strong><span>12.什么是事实</span></strong></p><p><span>		</span><span>表示某个业务的度量</span></p><p>&nbsp;</p><h3 id='12-事实表技术'><span>1.2 事实表技术</span></h3><p><strong><span>1.事实表结构</span></strong></p><p><span>		</span><span>发生在现实世界中的操作型事件，其所产生的可度量数值，存储在事实表中</span></p><p><span>		</span><span>从最低的粒度级别来看，事实表对应的一个度量事件</span></p><p><span>		</span><span>事实表除数字度量外，还包含外键，用于关联与之相关的维度，也包括可选的退化维度和日期/时间戳</span></p><p><span>		</span><span>查询请求的主要目标是基于事实表展开计算和聚集操作。</span></p><p><strong><span>2. 度量分类</span></strong></p><p><span>		</span><span>事实表中的数字度量可划分为三类：可加、半可加、不可加</span></p><p><span>		</span><span>可加：金额、用户数；最灵活、最有用，可以按照与事实表关联的任意维度汇总</span></p><p><span>		</span><span>半可加：差额；除时间维度外，可以跨所有维度进行加法操作</span></p><p><span>		</span><span>不可加：比率；对非可加事实，一种好的方式是，尽可能存储非可加度量的完全可加的分量，并在计算出最终的非可加事实前，将这些分量汇总到最终的结果集合中。</span></p><p><strong><span>3. 一致性事实</span></strong></p><p><span>		</span><span>如果某些度量出现在不同的事实表中，如果需要比较或计算不同事实表中的事实，应保证针对事实的技术定义是相同的。如果不同的事实定义是一致的，则这些一致性事实应该具有相同的命名。</span></p><p><strong><span>4. 事实表设计原则</span></strong></p><p><strong><span>（1）尽可能包含所有与业务过程相关的事实</span></strong></p><p><strong><span>（2）只选择与业务过程相关的事实</span></strong></p><p><strong><span>（3）分解不可加性事实为可加的组件</span></strong></p><p><span>		</span><span>比如订单优惠率，应该分解为订单原价金额与订单优惠金额两个事实存储在事实表中</span></p><p><strong><span>（4）在选择维度和事实之前必须先声明粒度</span></strong></p><p><strong><span>（5）在同一个事实表中不能有多种不同粒度的事实</span></strong></p><p><span>		</span><span>举例：机票支付成功事务事实表，粒度为票一级</span></p><p><span>		</span><span>在实际业务中，一个订单可以支付多张票，如ID为100901的订单包含三张机票，ID为100902的订单包含两张机票，ID为100903的订单包含一张机票。</span></p><p><span>		</span><span>在该事实表的设计中，票支付金额和票折扣金额两个事实与表定义的粒度一致，并且支持按表的任意维度汇总，可以添加进该事实表中。而订单支付金额和订单票数作为上一层粒度的订单级事实，与该票级事实表的粒度不一致，且不能进行汇总。</span></p><p><span>		</span><span>比如订单ID为100901的订单支付金额为3700元，订单票数为3张，如果这两个度量在该表进行汇总计算总订单金额和总票数，则会造成重复计算的问题，所以不能作为该表的度量选入。</span></p><p><strong><span>（6）事实的单位要保持一致</span></strong></p><p><span>		</span><span>比如原订单金额、订单优惠金额、订单运费金额，应采用一致的计量单位，统一为元或分，以方便使用</span></p><p><strong><span>（7）对事实的null值要处理</span></strong></p><p><span>		</span><span>事实表中的度量为null的值，建议用零值填充</span></p><p><strong><span>（8）使用退化维度提高事实表的易用性</span></strong></p><p><span>		</span><span>什么是退化维度：维度属性存储到事实表中</span></p><p><span>		</span><span>设计目的：减少下游用户使用时关联多个表的操作，直接通过退化维度实现对事实表的过滤查询、控制聚合层次、排序数据以及定义主从关系等。</span></p><p><span>		</span><span>通过增加冗余存储的方式减少计算开销，提高使用效率。</span></p><p><strong><span>5.事实表设计方法</span></strong></p><p><span>		</span><span>维度模型设计采用四步设计方法：选择业务过程、声明粒度、确定维度、确定事实</span></p><p><strong><span>（1）选择业务过程及确定事实表类型</span></strong></p><p><span>		</span><span>淘宝订单流转业务过程有4个：创建订单、买家付款、卖家发货、买家确认收货</span></p><p><span>		</span><span>在明确了流程所包含的业务过程后，需要根据具体的业务需求来选择与维度建模有关的业务过程</span></p><p><span>		</span><span>确定事实表类型：选择买家付款这个业务过程，则为单事务事实表；如果选择4个业务过程，并且需要分析个各个业务过程之间的时间间隔，则为包含4个业务过程的累积快照事实表。</span></p><p><strong><span>（2）声明粒度</span></strong></p><p><span>		</span><span>子订单级别（订单明细）</span></p><p><span>		</span><span>淘宝订单中有父子订单的概念，即一个子订单对应一个种商品，如果拍下了多个商品，则每种商品对应一个子订单；这些订单一同结算的话，则会生成一个父订单。</span></p><p><span>		</span><span>完成粒度声明之后，也就意味着确定了主键</span></p><p><strong><span>（3）确定维度</span></strong></p><p><span>		</span><span>相关维度有买家、卖家、商品、收货人信息、业务类型、订单时间等维度</span></p><p><strong><span>（4）确定事实</span></strong></p><p><span>		</span><span>事实可以通过回答“过程的度量是什么”来确定。</span></p><p><span>		</span><span>事实的粒度要与所声明的事实表的粒度一致</span></p><p><span>		</span><span>比如淘宝订单付款事务事实表中，同粒度的事实有子订单分摊的支付金额、邮费、优惠金额等。</span></p><p><strong><span>（5）冗余维度</span></strong></p><p><span>		</span><span>退化维度</span></p><p><span>		</span><span>订单付款事务事实表中，冗余产品险种、所属保险公司等维度信息</span></p><p>&nbsp;</p><p><strong><span>6. 事务事实表</span></strong></p><p><strong><span>（1）定义</span></strong></p><p><span>		</span><span>事务事实表用来描述业务过程，跟踪空间和时间上某点的度量事件，保存的是最原子的数据，也称为“原子事实表”</span></p><p><span>（2）</span></p><p><strong><span>7. 多事务事实表</span></strong></p><p><span>		</span><span>将不同的事实放到同一个事实表中，即同一个事实表包含不同的业务过程</span></p><p><span>		</span><span>设计方法有2种：</span></p><p><span>（1）不同业务过程的事实使用不同的事实字段进行存放</span></p><p><span>		</span><span>举例：淘宝交易事务事实表同时包含下单、支付、成功完结三个业务过程，这三个业务过程拥有相同的粒度：子订单粒度，也比较适合放到同一个事实表中。</span></p><p><img src="../image/interview/维度建模/多事务事实表1.png" referrerpolicy="no-referrer" alt="image-20221103151014848"></p><p><span>（2）不同业务过程的事实使用同一个事实字段进行存放，但增加一个业务过程标签</span></p><p><span>		</span><span>举例：淘宝收藏商品事务事实表，用户可以直接收藏一个商品，可以删除所收藏的商品，包含两个业务过程：收藏商品和删除商品</span></p><p><img src="../image/interview/维度建模/多事务事实表2.png" referrerpolicy="no-referrer" alt="image-20221103151620527"></p><p><strong><span>多事务事实表的选择：</span></strong></p><ul><li><span>当不同业务过程的度量比较相似，差异不大时，可以采用第二种多事务事实表的设计方式，使用同一个字段来表示度量数据。但这种方式存在一个问题：同一个周期内会存在多条记录</span></li><li><span>当不同业务过程的度量差异较大时，可以选择第一种多事务事实表的设计方式，将不同业务过程的度量使用不同字段冗余到表中，非当前业务过程则置零表示。这种方式存在的问题是度量字段零值较多。</span></li></ul><p><strong><span>8. 单事务事实表和多事务事实表的比较</span></strong></p><figure><table><thead><tr><th>&nbsp;</th><th><span>单事务事实表</span></th><th><span>多事务事实表</span></th></tr></thead><tbody><tr><td><span>业务过程</span></td><td><span>一个</span></td><td><span>多个</span></td></tr><tr><td><span>粒度</span></td><td><span>不相关</span></td><td><span>相同粒度</span></td></tr><tr><td><span>维度</span></td><td><span>相互间不相关</span></td><td><span>一致</span></td></tr><tr><td><span>事实</span></td><td><span>只取当前业务过程中的事实</span></td><td><span>保留多个业务过程中的事实，非当前业务过程中的事实需要置零处理</span></td></tr><tr><td><span>冗余维度</span></td><td><span>多个业务过程，则需要冗余多次</span></td><td><span>不同业务过程只需要冗余一次</span></td></tr><tr><td><span>理解程度</span></td><td><span>易于理解，不会混淆</span></td><td><span>难以理解，需要通过标签来限定</span></td></tr><tr><td><span>计算存储成本</span></td><td><span>较多，每个业务过程都需要计算存储一次</span></td><td><span>较少，不同业务过程融合到一起，降低了存储计算量，但是非当前业务过程的度量存在大量零值</span></td></tr></tbody></table></figure><p><strong><span>9. 周期快照事实表</span></strong></p><p><strong><span>（1）定义</span></strong></p><p><span>		</span><span>周期快照事实表以具有规律性的、可预见的时间间隔记录事实，时间间隔如每天、每月、每年等。</span></p><p><span>		</span><span>快照事实表的粒度通常以维度形式声明</span></p><p><span>		</span><span>快照周期：天、周、月、季度、自然年、财年等</span></p><p><span>		</span><span>密度与稀疏性：事务事实表是稀疏的，快照事实表是稠密的</span></p><p><span>		</span><span>半可加性：半可加性事实不能根据时间维度获得有意义的汇总结果，但可以计算一下平均值</span></p><p><strong><span>（2）举例</span></strong></p><p><span>		</span><span>自然年至今或者历史至今的下单金额、支付金额、支付买家数、支付商品件数等状态度量</span></p><p><span>		</span><span>单维度的每天快照事实表：采样周期为每天，单个维度汇总</span></p><p><span>		</span><span>混合维度的每天快照事实表：在每天采用周期上针对多个维度进行采样</span></p><p><strong><span>（3）快照事实表设计步骤</span></strong></p><ul><li><span>确定快照事实表的快照粒度</span></li><li><span>确定快照事实表采样的状态度量</span></li></ul><p><strong><span>（4）应用场景</span></strong></p><p><span>		</span><span>周期快照事实表一般用于创建汇总指标，存储在DWS层</span></p><p><span>		</span><span>事务事实表与快照事实表往往都是成对设计，相互补充，以满足更多的下游统计分析需求，特别是在事务事实表的基础上可以加工快照事实表</span></p><p>&nbsp;</p><p><strong><span>10. 累计快照事实表</span></strong></p><p><strong><span>（1）定义</span></strong></p><p><span>		</span><span>累计快照事实表用来表述过程开始和结束之间的关键步骤事件，覆盖过程的整个生命周期，通常具有多个日期字段来记录关键时间点，当过程随着生命周期不断变化时，记录也会随着过程的变化而被修改。</span></p><p><span>（2）举例</span></p><p><span>		</span><span>比如统计买家下单到支付的时长，买家支付到卖家发货的时长，买家从下单到确认收货的时长等</span></p><p><img src="../image/interview/维度建模/累积快照事实表设计.png" style="zoom:80%;" /></p><p><img src="../image/interview/维度建模/累积快照事实表举例.png" style="zoom:80%;" /></p><p><strong><span>11. 三种事实表的对比</span></strong></p><figure><table><thead><tr><th>&nbsp;</th><th><span>事务事实表</span></th><th><span>周期快照事实表</span></th><th><span>累积快照事实表</span></th></tr></thead><tbody><tr><td><span>时期/时间</span></td><td><span>离散事务时间点</span></td><td><span>已有规律的、可预测的间隔产生快照</span></td><td><span>用于时间跨度不确定的不断变化的工作流</span></td></tr><tr><td><span>时期维度</span></td><td><span>事务日期</span></td><td><span>快照日期</span></td><td><span>相关业务过程涉及的多个日期</span></td></tr><tr><td><span>粒度</span></td><td><span>每行代表实体的一个事务</span></td><td><span>每行代表某时间周期的一个实体</span></td><td><span>每行代表一个实体的生命周期</span></td></tr><tr><td><span>事实</span></td><td><span>事务事实</span></td><td><span>累积事实</span></td><td><span>相关业务过程事实和时间间隔事实</span></td></tr><tr><td><span>事实表加载</span></td><td><span>插入</span></td><td><span>插入</span></td><td><span>插入与更新</span></td></tr><tr><td><span>事实表更新</span></td><td><span>不更新</span></td><td><span>不更新</span></td><td><span>业务过程变更时更新</span></td></tr></tbody></table></figure><p><strong><span>12.无事实的事实表</span></strong></p><p><span>		</span><span>不包含事实或度量的事实表称为无事实的事实表。虽然没有明确的事实，但可以用来支持业务过程的度量。</span></p><p><span>		</span><span>常见的五事实的事实表有2种：</span></p><p><span>（1）事件类的，记录时间的发生</span></p><p><span>		</span><span>日志事件表，比如用户的浏览日志、点击、转发等行为</span></p><p><span>（2）条件、范围或资格类的，记录维度与维度多对多之间的关系</span></p><p><span>		</span><span>客户和销售人员的分配情况、产品的促销范围</span></p><p><strong><span>13. 聚集型事实表</span></strong></p><p><span>		</span><span>聚集主要是通过汇总明细粒度数据来获得改进查询性能的效果。</span></p><p><span>		</span><span>这类聚集汇总数据，叫做公共汇总层 DWS层</span></p><p><span>		</span><span>举例：卖家最近1天的交易汇总表，卖家最近N天的交易汇总表、卖家自然年交易汇总表等</span></p><p><span>		</span><strong><span>聚集的基本原则：</span></strong></p><ul><li><p><span>一致性。</span></p><p><span>聚集表必须提供与查询明细粒度数据一致的查询结果</span></p></li><li><p><span>避免单一表设计</span></p><p><span>不要在同一个表中存储不同层次的聚集数据；否则将会导致双重计算或出现更糟糕的事实。</span></p><p><span>在聚集表中有些行存放按天汇总的交易额，有些行存放按月汇总的交易额，这将会让使用者产生误用导致重复计算</span></p><p><span>解决方法：按天与按月汇总的交易额用两列存放，但是需要在列名或者列注释上能辨别出来</span></p></li><li><p><span>聚集粒度可不同</span></p></li></ul><p>&nbsp;</p><h3 id='13-维度表技术'><span>1.3 维度表技术</span></h3><p><strong><span>1.如何获取维度和维度属性？</span></strong></p><p><span>		</span><span>可以在报表中获取</span></p><p><span>		</span><span>可以在和业务人员的交谈中发现维度和维度属性</span></p><p><strong><span>2.维度的基本设计方法</span></strong></p><p><span>		</span><span>数仓的能力直接与维度属性的质量和深度成正比</span></p><p><span>商品维度设计方法：</span></p><p><span>（1）选择维度或新建维度</span></p><p><span>		</span><span>数仓中保证维度的唯一性，商品维度，有且只允许有一个维度定义</span></p><p><span>（2）确定主维表</span></p><p><span>		</span><span>主维表一般是ODS表，直接与业务系统同步</span></p><p><span>（3）确定相关维度表</span></p><p><span>		</span><span>根据对业务的梳理，确定哪些表和主维表存在关联关系，并选择其中的那些表用于生成维度属性</span></p><p><span>		</span><span>比如商品维度，可以得到商品与类目、SKU、卖家、店铺等维度存在关联关系</span></p><p><span>（4）确定维度属性</span></p><p><strong><span>3. 缓慢变化维</span></strong></p><p><span>		</span><span>在实现世界中，维度的属性并不是静态的，它会随着时间的流逝发生缓慢的变化</span></p><p><span>		</span><span>在Kimball理论中，有3种处理缓慢变化维的方式：</span></p><p><span>（1）重写维度值，不保留历史数据，始终取最新数据</span></p><p><span>（2）插入新的维度行，保留历史数据，维度值变化前的事实和过去的维度值关联，维度值变化后的事实和当前的维度值关联</span></p><p><span>（3）添加维度列</span></p><p><strong><span>4. 快照维表，处理缓慢变化维</span></strong></p><p><span>		</span><span>在Kimball的维度建模中，必须使用代理键作为每个维度的主键，用于处理缓慢变化维</span></p><p><span>		</span><span>在阿里数仓建设中，没有使用代理键。为什么不使用代理键？如何处理缓慢变化维？</span></p><p><strong><span>为什么不使用代理键？</span></strong></p><p><span>（1）阿里数据庞大，对每个表的记录生存稳定的全局唯一的代理键难度很大，此处稳定指某条记录每次生成的代理键都相同</span></p><p><span>（2）使用代理键会大大增加ETL复杂性，对ETL任务的开发和维护成本很高</span></p><p><strong><span>不使用代理键如何处理缓慢变化维</span></strong></p><p><span>		</span><span>采用快照方式，每天保留一份全量快照数据。</span></p><p><span>		</span><span>比如商品维度，每天保留一份全量商品快照数据。任意一天的事实均可以获取到当天的商品信息，也可以获取到最新的商品信息，通过限定日期，采用自然键进行关联即可。</span></p><p><span>		</span><span>优点：</span></p><ul><li><p><span>简单有效，开发和维护成本低</span></p></li><li><p><span>使用方便，理解性好</span></p><p><span>缺点：存储的极大浪费，需要设计对应的数据生命周期制度，清楚无用的历史数据</span></p><p>&nbsp;</p></li></ul><p><strong><span>5. 极限存储（拉链表）处理缓慢维度</span></strong></p><p><span>		</span><span>通过新增两个时间戳字段（start_dt和end_dt），将所有以天为粒度的变更数据都记录下来。</span></p><p><span>		</span><span>通常分区字段也是时间戳字段</span></p><p><span>		</span><span>优点：对于变化的数据，不再重复存储</span></p><p><span>		</span><span>缺点：</span></p><ul><li><p><span>对于下游使用方存在一定的理解障碍，存在较高的解释成本</span></p></li><li><p><span>这种存储方式用start_dt和end_dt做分区，随着时间的推移，分区数量会极度膨胀。</span></p><p><span>优化方法：分月做历史拉链表，每个月月初重新开始做历史拉链表</span></p></li></ul><p><strong><span>6. 微型维度</span></strong></p><p><span>		</span><span>存在的问题：比如对于商品维表，每天20多亿条数据，如果在设计商品维度时，将值变化频繁的属性加入到商品维度中，极限情况是每天所有商品数据都发生变化，此时，极限存储没有意义；反之，每天所有商品数据都不发生变化，此时，只需要存储一天的数据即可。</span></p><p><span>		</span><span>微型维度：将一部分不稳定的属性从主维度表中移出，并将它们放置到拥有自己代理键的新表中来实现的，</span></p><p><img src="../image/interview/维度建模/微型维度.png" style="zoom:50%;" /></p><p><strong><span>7. 维表递归层次如何处理</span></strong></p><p><span>		</span><span>维度属性以层次或一对多的方式相关关联；或者描述为不同维度之间的主从关系</span></p><p><span>		</span><span>比如商品和类目的关系、商品和品牌的关系、类目体系等</span></p><p><span>		</span><span>维度的递归层次分类：按照层级是否固定分为均衡层次结构和非均衡层次结构</span></p><ul><li><span>均衡层次结构：比如类目、地区，有固定数量的级别</span></li><li><span>非均衡层次结构：比如公司之间的关系，每个公司可能存在一个母公司，但没有固定的一级、二级等层级关系</span></li></ul><p><span>针对维表的递归层次有2种处理方法：</span></p><p><span>（1）层次结构扁平化</span></p><p><span>		</span><span>建立维度固定数量级别的属性来实现</span></p><p><span>（2）层次桥接表</span></p><p>&nbsp;</p><p><strong><span>8. 行为维度</span></strong></p><p><strong><span>什么是行为维度？</span></strong></p><p><span>		</span><span>通过采用算法计算得到，或者进行统计得到的类似维度，都和事实相关，如交易、物流等，称之为“行为维度”或“事实衍生的维度”</span></p><p><span>		</span><span>如卖家主营类目维度、卖家主营品牌维度、用户常用地址维度等。其中卖家主营类目和主营品牌通过卖家的商品分布和交易分布情况，采用算法计算得到；卖家常用地址通过最近一段时间内物流中卖家的发货地址和买家的收货地址进行统计得到。</span></p><p><strong><span>常见的行为维度有哪些？</span></strong><span>	</span></p><p><span>（1）另一个维度的过去行为</span></p><p><span>		</span><span>如买家最近一次访问淘宝的时间、买家最近一次发生淘宝交易的时间等</span></p><p><span>（2）快照事实行为维度</span></p><p><span>		</span><span>如买家从年初截止当前的淘宝交易金额、买家信用分值、卖家信用分值等</span></p><p><span>（3）分组事实行为维度，将数值类型事实转换为枚举值</span></p><p><span>		</span><span>如买家从年初截至到当前的淘宝交易金额按照金额划分的等级、买家信用分值按照分数划分得到的信用等级等</span></p><p><span>（4）复杂逻辑事实行为维度，通过复杂算法加工或多个事实综合加工得到。</span></p><p><span>		</span><span>如卖家主营类目，商品热度根据访问、收藏、加入购物车、交易等情况综合计算得到</span></p><p><strong><span>行为维度，2中处理方式：</span></strong></p><p><span>（1）将其冗余至现有的维表中</span></p><p><span>		</span><span>如将卖家信用等级冗余至卖家维表中</span></p><p><span>（2）加工成单独的行为维表</span></p><p><span>		</span><span>如卖家主营类目</span></p><p><span>具体采用哪种方式主要参考2个原则：</span></p><p><span>（1）避免过度过快增长</span></p><p><span>		</span><span>比如对商品表进行了极限存储（拉链存储），如果将商品热度加入现有商品维度表中，则可能会使每日商品变更占比过高，从而导致极限存储效果较差</span></p><p><span>（2）避免耦合度过高</span><span>		</span></p><p><span>		</span><span>比如卖家主营类目，加工逻辑异常复杂，如果融合进现有的卖家维度表中，那么过多的业务耦合会导致卖家维度表刷新逻辑复杂、维护性差、产出延迟等。</span></p><p><span>	</span></p><p><strong><span>9. 维表中多值维度的处理</span></strong></p><p><span>		</span><span>事实表的一条记录在某维表中有多条记录与之对应。</span></p><p><span>		</span><span>举例：淘宝交易订单，买家一次购买多种商品，如一件毛衣和两双袜子，称为交易父订单；对于每种商品的交易，称为交易子订单；此交易父订单有两个子订单与之对应。假设设计交易父订单事实表，则事实表的每条记录，在商品表中都有一到多条记录与之对应。</span></p><p><span>		</span><span>针对多值维度，有3种处理方法：</span></p><p><strong><span>（1）降低事实表的粒度</span></strong></p><p><span>		</span><span>将交易订单设为子订单粒度，对应每个子订单，只有一种商品与之对应</span></p><p><strong><span>（2）采用多字段</span></strong></p><p><span>		</span><span>很多时候事实表的粒度是不能降低的，比如在房地产销售中，每次合同签订都可能存在多个买受方的情况，如夫妻合买等。</span></p><p><span>		</span><span>对于合同签订事实表，每条记录可能对应多个买受方，而合同已经是此事实中的最细粒度，无法通过降低维度粒度的方式来解决。由于合同签订的买受人一般不会太多，可以采用多字段方式。</span></p><p><img src="../image/interview/维度建模/多值维度-扩展字段.png" alt="image-20221103110510427" style="zoom:80%;" /></p><p><strong><span>（3）桥接表</span></strong></p><p><span>		</span><span>通过在事实表和维表之间开发一个分组表，通过此分组表建立连接。其中桥接表包含和事实表关联的分组Key，以及作为买受方维表外键的买受方ID。如果事实表的一条记录对应两个买受方，则桥接表针对这两个买受方建立两条记录，分组Key相同。</span></p><p><span>		</span><span>桥接表方式更加灵活、扩展性更好，但逻辑复杂、开发和维护成本较高，可能带来双重计算的风险，选择此方式需慎重。</span></p><p><img src="../image/interview/维度建模/多维度值-桥接表.png" referrerpolicy="no-referrer" alt="image-20221103110106315"></p><p><strong><span>10. 维度表多值属性的处理</span></strong></p><p><span>		</span><span>维表中的某个属性字段同时有个多个值，称之为“多值属性”。</span></p><p><span>		</span><span>举例：每个商品均有一个到多个SKU、一到多个属性和一到多个标签，所以商品和SKU、属性、标签都是多对多的关系。</span></p><p><span>		</span><span>对于多值属性，常见有3中处理方法：</span></p><p><strong><span>（1）保持维度主键不变，将多值属性放在维度的一个属性字段中</span></strong></p><p><span>		</span><span>比如商品属性，可以通过k-v对的形式放在property字段中，数据示例：10281:134566；13739:245664；</span></p><p><span>		</span><span>优点：扩展性好</span></p><p><span>		</span><span>缺点：数据使用较为麻烦</span></p><p><strong><span>（2）保持维度主键不变，将多值属性放在维度的多个属性字段中</span></strong></p><p><span>		</span><span>比如卖家主营类目，由于卖家商铺中可能同时销售男装、女装、内衣等，所以主营类目有多个。</span></p><p><span>		</span><span>需要注意：如果多值属性字段具体值的数量固定，可以采用多个属性字段进行存储，如果数量不固定，则可以采用预留字段的方式，但扩展性较差</span></p><p><span>		</span><span>优点：方便数据统计分析和报表展示</span></p><p><span>		</span><span>缺点：扩展性较差</span></p><p><strong><span>（3）维度主键发生变化，一个维度值存放多条记录</span></strong></p><p><span>		</span><span>比如商品SKU维表，对于每个商品，有多少SKU，就有多少记录，主键是商品ID和SKU的ID</span></p><p><span>		</span><span>优点：扩展性好，使用方便</span></p><p><span>		</span><span>缺点：需要考虑数据的急剧膨胀，比如淘宝商品属性表采用了此种处理方法，数据记录达到几百万亿的级别</span></p><p>&nbsp;</p><h2 id='2kimball维度建模过程'><span>2.KimBall维度建模过程</span></h2><p>&nbsp;</p><h2 id='3建模案例'><span>3.建模案例</span></h2><h3 id='31-交易域建模'><span>3.1 交易域建模</span></h3><p>&nbsp;</p><h3 id='32-流量域建模'><span>3.2 流量域建模</span></h3><p><span>1.建模流程</span></p><p><span>2.涉及业务过程</span></p><p><span>3.度量指标</span></p><p><span>	</span><span>行为次数，行为时长</span></p><h3 id='33-财务域建模'><span>3.3 财务域建模</span></h3><h4 id='331-基本概念'><span>3.3.1 基本概念</span></h4><p><strong><span>1.财务分析涉及的财务应用</span></strong></p><p><span>		</span><span>包括总账、采购、应付账款明细、开票、应收账款、固定资产等</span></p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p><p>&nbsp;</p></div></div>
+</body>
+</html>
