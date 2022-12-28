@@ -1,5 +1,7 @@
 <center><font size='60'>Kimball维度建模</font></center>
 
+[TOC]
+
 ## 1.基本概念
 
 ### 1.1 名称解释

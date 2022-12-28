@@ -2,11 +2,9 @@
 
 [TOC]
 
-
-
 ## 1.架构
 
-#### 1.1Flink运行架构
+### 1.1Flink运行架构
 
 
 
@@ -32,7 +30,7 @@
   
   Slot是资源调度的最小单位，slot的数量限制了TaskManager能够并行的任务数量
 
-#### 1.2Flink作业提交方式
+### 1.2Flink作业提交方式
 
 ​		Flink作业提交方式主要有三种：Yarn session、Yarn PerJob、Yarn Application
 
@@ -140,21 +138,186 @@
   ./examples/batch/AAA.jar --output hdfs://node01:8020/output_51
   ```
 
-  
 
-### 1.3 任务提交
+##### 1.2.5 公司怎么提交的实时任务，有多少 Job Manager、Task Manager？
 
-
-
-**3.公司怎么提交的实时任务，有多少 Job Manager、Task Manager？**
-
-我们使用 yarn pre-job 模式提交任务，该方式特点：每次提交都会创 建一个新的 Flink 集群，为每一个 job 提供资源，任务之间互相独立，互不影响， 方便管理。任务执行完成之后创建的集群也会消失。线上命令脚本如下：
+​		我们使用 yarn pre-job 模式提交任务，该方式特点：每次提交都会创 建一个新的 Flink 集群，为每一个 job 提供资源，任务之间互相独立，互不影响， 方便管理。任务执行完成之后创建的集群也会消失。线上命令脚本如下：
 
 bin/yarn-session.sh -n 7 -s 8 -jm 3072 -tm 32768 -qu root.. -nm - -d
 
 其中申请7个taskManager，每个8核，每个taskmanager有32768M内存。
 
-对于yarn模式，yarn在Job Mananger 故障会自动进行重启，所以只需要一个，我们配置的最大重启次数是10次
+对于yarn模式，yarn在Job Mananger 故障会自动进行重启，所以只需要一个，我们配置的最大重启次数是10次	
+
+### 1.3 任务调度原理
+
+​		一个具体的作业，是怎样从我们编写的代码，转换成TaskManager可以执行的任务呢？JobManager收到提交的作业，又是怎样确定总共有多少任务、需要多少资源呢？
+
+#### 1.3.1 数据流图（Dataflow Graph）
+
+​		编写的程序结构，其实就是定义一连串的处理操作，每个数据输入之后都会依次调用每一步计算。在Flink代码中，定义的每一个处理转换操作都叫做“算子”（Operator）。
+
+​		Flink程序可以归纳为3部分构成：
+
+- Source：表示“源算子”，负责读取数据源。
+- Transformation：表示“转换算子”，利用各种算子进行处理加工。
+- Sink：表示“下沉算子”，负责数据的输出
+
+​		在运行时，**Flink程序会被映射成所有算子按照逻辑顺序连接在一起的一张图，这被称为“逻辑数据流”（logical dataflow）或者叫“数据流图”（dataflow graph）。**数据流图类似于任意的有向无环图（DAG），这一点与spark等其他框架是一致的。
+
+#### 1.3.2 并行度（Parallelism）
+
+##### 1.3.2.1 什么是并行计算
+
+​		Spark是根据程序生成DAG划分阶段（stage），进而分配任务的。对于Flink流式引擎，没有必要划分stage。因为数据是连续不断到来的，完全可以按照数据流图建立一个“流水线”，前一个操作处理完成，就发往处理下一步操作的节点。
+
+​		Spark具有MapReduce架构思想是“数据不懂代码动”，Flink类似“代码不动数据流动”
+
+​		任务并行：将不同的算子操作任务，分配到不同的节点上执行，对任务做了分摊，实现了并行处理。但这种“并行”其实并不彻底，因为算子之间是有执行顺序的，对一条数据来说必须依次执行；而一个算子在同一时刻只能处理一个数据。
+
+​		数据并行：多条数据同时到来，可以同时读入，同时在不同节点执行flatMap操作。
+
+##### 1.3.2.2 并行子任务和并行度
+
+​		怎么实现数据并行呢？把一个算子操作，“复制”多份到多个节点，数据来了之后就可以到其中任意一个执行。一个算子任务就被拆分成了多个并行的“子任务”（subtasks）。
+
+![image-20221212185651896](../image/interview/Flink/并行数据流.png)
+
+​		**一个特定算子的子任务（subtask）的个数被称之为其并行度（parallelism）。** 它需要多个分区（stream partition）来配合并执行任务
+
+##### 1.3.2.3 并行度设置
+
+- 代码中设置
+
+  setParallelism()方法
+
+- 提交应用时设置
+
+  bin/flink run -p 2 使用-p参数来指定并行度
+
+- 配置文件中设置
+
+  flink-conf.yaml更改默认并行度：parallelism.default:2
+
+  在开发环境中，没有配置文件，默认并行度是当前机器CPU核心数
+
+并行度设置方法优先级：代码中设置 > 提交应用时设置 > 配置文件中设置
+
+#### 1.3.3 分区策略
+
+##### 1.3.3.1 什么是Partition
+
+​		在分布式存储中，Partition分区的概念是把数据集切分成块，每一块数据存储在不同的机器上。
+
+​		对于分布式计算引擎，是将数据切分，交给位于不同物理节点上的Task计算。**Flink中，就是把一个作业切分成子任务Task，将不同的数据交给不同的Task计算。**
+
+##### 1.3.3.2 分区策略
+
+​		目前Flink支持8中分区策略实现：
+
+1. GlobalPartitioner
+
+   数据会被分发到下游算子的第一个实例中进行处理
+
+   使用场景：并行度降为1
+
+2. ForwardPartitioner
+
+   用于在用一个Operator Chain中上下游算子之间的数据转发，实际上数据是直接传递给下游的，要求上下游并行度一样。
+
+   使用场景：一对一的数据分发，map、flatMap、filter等都是这种分区策略
+
+3. ShufflePartitioner
+
+   随机将元素进行分区，可以确保下游的Task能够均匀地获得数据
+
+   dataStream.shuffle()
+
+   使用场景：增大分区、提高并行度，解决数据倾斜
+
+4. RebalancePartitioner
+
+   以Round-robin（轮询调度算法）的方式为每个元素分配分区，确保下游的Task可以均匀地获得数据，避免数据倾斜。
+
+   dataStream.rebalance()
+
+   使用场景：增大分区、提高并行度，解决数据倾斜
+
+5. RescalePartitioner
+
+   根据上下游Task的数量进行分区，使用Round-robin寻找下游的一个task进行数据分区。
+
+   如果上游有2 Source，下游有6个Map，那么每个 Source 会分配3个固定的下游Map，不会向未分配给自己的分区写人数据。这一点与ShufflePartitioner 和RebalancePartitioner 不同， 后两者会写入下游所有的分区。
+
+   dataStream.rescale()
+
+   使用场景：减少分区，防止发生大量的网络传输 不会发生全量的重分区
+
+6. BroadcastPartitioner
+
+   将记录广播给所有分区，即有N个分区，就把数据复制N份，每个分区1份
+
+   dataStream.broadcast()
+
+   使用场景：需要使用映射表、并且映射表会经常发生变动的场景
+
+7. KeyGroupStreamPartitioner
+
+   在API层面，KeyGroupStreamPartitioner应用在KeyedStream上，生成一个新的KeyedStream。
+
+   KeyedStream根据keyGroup索引编号进行分区，会将数据按照key的Hash值输出到下游算子实例中。该分区器不是提供给用户使用的。
+
+8. CustomPartitioner
+
+   用户自定义分区器。需要用户自己实现Partitioner接口，来定义自己的分区逻辑。
+
+#### 1.3.4 算子链（Operator Chain）
+
+##### 1.3.4.1  算子间的数据传输
+
+![image-20221212224301342](../image/interview/Flink/算子间的数据传输.png)
+
+​		如上图所示，一个数据流在算子之间传输数据的形式可以是一对一（one-to-one）的直通（forwarding）模式，也可以是打乱的重分区（redistribute）模式
+
+- 一对一（one-to-one，forwarding）
+
+  数据流维护着分区以及元素的顺序，这种one-to-one的对应关系，类似于spark中的窄依赖。
+
+- 重分区（redistributing）	
+
+  数据流的分区发生改变，每一个算子的子任务，会根据数据传输的策略，把数据发送到不同的下游目标任务。
+
+  例如：keyBy()是分组操作，本质上基于键（key）的哈希值（hashCode）进行了重分区。类似于spark中的shuffle。类似于spark中宽依赖。
+
+##### 1.3.4.2 合并算子链
+
+​		在flink中，并行度相同的一对一（one to one）算子操作，可以直接链接在一起形成一个“大”的任务（task），原来的算子成为了task中的一部分。每个task会被一个线程执行，这样的技术被称为“算子链”（Operator Chain）。
+
+![image-20221212225717377](../image/interview/Flink/合并算子链.png)
+
+​		Flink为什么要有算子链这样一个设计呢？因为降算子链接成task是非常有效的优化：可以减少线程之间的切换和基于缓存区的数据交换，减少延迟的同时提升吞吐量。
+
+#### 1.3.5 作业图（JobGraph）与执行图（ExecutionGraph）
+
+​		梳理总结一下由代码生成任务的过程，包括需要考虑并行子任务的分配、数据在任务间的传输，以及合并算子链的优化。
+
+​		代码  —> 逻辑流图（StreamGraph）  —> 作业图（JobGraph）  —>执行图（ExecutionGraph）  —>物理图（Physical Graph）
+
+#### 1.3.6 任务（Tasks）和任务槽（Task Slots）
+
+##### 1.3.6.1 什么是任务槽
+
+​		任务槽（task slot）是TaskManager拥有计算资源的一个固定大小的子集，这些资源就是用来独立执行一个子任务的。
+
+​		可以通过集群的配置文件来设定TaskManager的slot数量: taskmanager.numberOfTaskSlots: 8。通过调整slot数量，可以控制子任务之间的隔离级别。
+
+​		slot目前仅仅用来隔离内存，不会涉及CPU隔离。在具体应用时，可以将slot数量配置为机器的CPU核心数，尽量避免不同任务之间对CPU的竞争。
+
+##### 1.3.6.2 任务对任务槽的共享
+
+##### 1.3.6.3 任务槽和并行度的关系
+
+
 
 ## 2.DataStream API
 
@@ -724,45 +887,217 @@ StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
 ### 7.2 流处理中的表
 
+### 7.3 时间属性和窗口
+
+#### 7.3.1 时间
+
+#### 7.3.2 窗口
+
+		##### 7.3.2.1 窗口表值函数（Windowing TVFs，新版本）
+
+​		从1.13版本开始，Flink开始使用窗口表值函数（Windowing table-valued functions，Windowing TVFs）来定义窗口。
+
+​	目前Flink提供了以下几个窗口TVF：
+
+- 滚动窗口（Tumbling Windows）
+
+  长度固定、时间对齐、无重叠的窗口，一般用于周期性的统计计算
+
+  TUMBLE(TABLE EventTable, DESCRIPTOR(ts), INTERVAL '1' HOUR)
+
+- 滑动窗口（Hop Windows，跳跃窗口）
+
+  设置滑动步长来控制统计输出的频率
+
+  HOP(TABLE EventTable, DESCRIPTOR(ts), INTERVAL '5' MINUTES, INTERVAL '1' HOURS)
+
+  基于时间属性ts，在表EventTable上创建了大小为1小时的滑动窗口，每5分钟滑动一次。
+
+- 累积窗口（Cumulate Windows）
+
+  场景：统计周期较长，希望中间每隔一段时间就输出一次当前的统计值；与滑动窗口不同的是，在一个统计周期内，会多次输出统计值，应该是不断叠加累积的。
+
+  例如：按天统计网站的PV，每隔1小时输出一次当天到目前为止的PV值。
+
+  CUMULATE(TABLE EventTable,DESCRIPTOR(ts), INTERVAL '1' HOURS, INTERVAL '1' DAYS)
+
+  两个核心参数：最大窗口长度（max window size）和累积步长（step）
+
+- 会话窗口（Session Windows，目前尚未完全支持）
+
+### 7.4 聚合
+
+#### 7.4.1 窗口聚合
+
+​		使用窗口TVF实现分组窗口的聚合：
+
+```sql
+select user,
+       window_end as endT,
+       count(url) as cnt
+from TABLE(
+	TUMBLE(TABLE EventTable, DESCRIPTOR(ts), INTERVAL '1' HOUR)
+)
+group by user, window_start, window_end
+```
+
+​		以ts作为时间属性字段、基于EventTable定义了1小时的滚动窗口，统计出每小时每个用户点击url的次数。分组字段是用户名user，表示窗口的window_start、window_end
+
+#### 7.4.2 开窗聚合
+
+​		具体实例：
+
+```sql
+select user, ts,
+       count(url) over(partition by user order by ts range between interval '1' HOUR preceding and current row) as cnt
+from EventTable
+```
+
+​		以ts作为时间属性字段，对EventTable中的每行数据都选取它之前1小时的所有数据进行聚合，统计每个用户访问url的总次数，并重命名为cnt。
+
+​		使用window字句在select外部单独定义一个over窗口：
+
+```sql
+select user, ts,
+       count(url) over w as cnt,
+       max(char_length(url)) over w as max_url
+from EventTable
+window w as(
+  partition by user order by ts rows between 2 preceding and current row
+)
+```
+
+​		定义了选取前2行数据的over窗口，并重命名为w；接下来可以基于它调用多个聚合函数，扩展出更多的列提取出来。
+
+#### 7.4.3 窗口TopN
+
+```sql
+select *
+from
+(
+  select *,
+         row_number() over(partition by window_start, window_end order by cnt desc) as row_num
+  from
+  (
+    select window_start, window_end, user, count(url) as cnt
+    from TABLE(
+      tumble(table EventTable, descriptor(ts), interval '1' hour)
+    )
+    group by window_start, window_end, user
+  ) as t
+) as t
+where row_num <= 2
+```
 
 
 
+### 7.5 Join
+
+​		Flink双流Join主要分为两大类，一类是基于原生State的Connect算子操作，另一类是基于窗口Join操作。其中给予窗口的Join可细分为Window join 和Interval join两种。
+
+#### 7.5.1 双流Join（Regular Join）
+
+<img src="../image/interview/Flink/双流Join.png" alt="image-20221223100459744" style="zoom:50%;" />
+
+​		Join机制实现原理：依赖Flink的State状态存储，通过将数据存储到State中进行关联join，最终输出结果。
+
+- 支持Inner join、left join、right join、full outer join
+
+- 语法，语义均和传统SQL一致
+
+- 左右流都会触发结果更新
+
+- 状态持续增长，一般结合state TTL使用
+
+  configuration.setString("table.exec.state.ttl", "1h")
+
+#### 7.5.2 Window Join
+
+​		利用Flink的窗口机制实现双流Join，将两条实时流中元素分配到同一个时间窗口中完成Join。
+
+​		底层原理：两条实时流数据缓存在Window State中，当窗口触发计算时，执行join操作
+
+<img src="../image/interview/Flink/window join.png" alt="image-20221223102958304" style="zoom:50%;" />
 
 
 
+#### 7.5.2 区间Join（Interval Join）
 
+#### 7.5.3 时态表 Join（Temproal Join）
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-### 7.2 查询案例
-
-count distinct 求uv场景，同一个设备刷了很多记录
+#### 7.5.4 自定义函数 UDTF
 
 
 
 ## 8.压测与监控
+
+### 8.1 Flink反压机制
+
+#### 8.1.1 Flink数据交换
+
+​		Flink的数据交换有3种：
+
+- 同一个Task的数据交换
+
+  通过算子链operator chain串联多个算子，主要作用是避免序列化和网络通信的开销。
+
+  算子链operator chain串联多个算子的条件：
+
+  - 上下游的并行度一致
+  - 下游节点的入度为1
+  - 上下游节点共享同一个slot
+  - 下游节点的chain策略为ALWAYS（例如map、flatmap、filter等默认是ALWAYS）
+  - 上游节点chain策略为ALWAYS或HEAD（source默认是HEAD）
+  - 两个节点间数据分区方式是forward
+  - 用户没有禁用chain
+
+- 不同Task同JVM下的数据交换
+
+  <img src="../image/interview/Flink/数据交换2.png" alt="image-20221214160200029" style="zoom:50%;" />
+
+  在TaskA中，算子输出的数据首先通过record Writer进行序列化，然后传递给result Partition。接着，数据通过local channel传递给TaskB的input Gate，然后传递给record reader进行反序列。
+
+- 不同Task且不同TaskManager之间的交换
+
+  <img src="../image/interview/Flink/数据交换3.png" alt="image-20221214160501095" style="zoom:50%;" />
+
+  与上述2不同点是数据先传递给netty，通过netty把数据推送到远程段的task。
+
+#### 8.1.2 Flink的Credit-based反压机制
+
+​		在Flink层面实现反压机制，通过ResultPartition和InputGate传输feedback。
+
+​		Credit-base的feedback步骤：
+
+- 每一次ResultPartition向InputGate发送数据的时候，都会发送一个backlog size告诉下游准备发送多少消息，下游就会计算游多少Buffer去接收消息。（backlog的作用是为了让消费端感知到我们生产端的情况）
+
+- 如果下游有充足的Buffer，就会返还给上游Credit（表示剩余buffer数量），告知发送消息（图上两个虚线是采用Netty和Socket进行通信）。
+
+  <img src="../image/interview/Flink/反压机制1.png" alt="image-20221214161511881" style="zoom:50%;" />
+
+  ​													                  生成段发送backlog = 1
+
+  <img src="../image/interview/Flink/反压机制2.png" alt="image-20221214161616471" style="zoom:50%;" />
+
+  ​																消费端返回credit = 3
+
+  <img src="../image/interview/Flink/反压机制3.JPG" alt="image-20221214161734831" style="zoom:100%;" />
+
+  ​                                                           当生产端用完buffer， 返回credit = 0
+
+  <img src="../image/interview/Flink/反压机制4.png" alt="image-20221214161836295" style="zoom:50%;" />
+
+  
+
+  ​																生产端也出现了数据积压
+
+##### 8.1 怎么做压力测试和监控？
+
+​		一般碰到的压力来自以下几个方面：
+
+1. 产生数据流速度如果过快，而下游的算子消费不过来的话，会产生**背压**。背压的监控可以使用Flink Web UI来可视化监控，一旦报警就能知道。一般情况下背压问题的产生可能是由于sink这个操作符没有优化好，做一下优化就可以，比如如果写入ElasticSearch，那么可以改成批量写入，可以调大ElasticSearch队列的大小等策略。
+2. 设置watermark的最大延迟时间这个参数，如果设置的过大，可能会造成内存的压力。可以设置最大延迟时间小一些，然后把迟到元素发送到侧输出流中去。晚一点更新结果。或者使用类似RocksDB这样的状态后端，RocksDB会开辟堆外存储空间，但IO速度会变慢，需要权衡。
+3. 还有就是滑动窗口的长度如果过长，而滑动距离很短的话，Flink的性能会下降的很厉害。主要通过时间分片的方法，将每个元素只存入一个“重叠窗口”，这样可以减少窗口处理中状态的写入。
 
 ## 9. 实时数仓
 
@@ -843,11 +1178,217 @@ Flink SQL维表关联
 
 ## 10. 性能优化
 
+### 10.1 数据倾斜
+
+#### 10.1.1 原理
+
+​		产生数据倾斜的原因主要有2方面：
+
+- 业务上有严重的数据热点
+
+  比如滴滴打车的订单数据中北京、上海等几个城市的订单远远超过其他地区
+
+- 技术上大量使用KeyBy、GroupBy等操作
+
+  错误的使用了分组Key，人为产生数据热点
+
+​		分组聚合使用KeyGroupStreamPartitioner分区策略，Flink中，就是把一个作业切分成子任务Task，partition将不同的数据交给不同的Task计算。会将数据按照key的Hash值输出到下游算子实例中。
+
+<img src="../image/interview/Flink/数据倾斜原理.png" alt="image-20221214110957866" style="zoom:50%;" />
+
+#### 10.1.2 数据倾斜的影响
+
+1. 单点问题
+
+   数据集中在某些分区上（subtask），导致数据严重不平衡
+
+2. GC频繁
+
+   过多的数据集中在某些JVM（TaskManager），使得JVM的内存资源短缺，导致频繁GC
+
+3. 吞吐下降、延迟增大
+
+   数据单点和频繁GC导致吞吐下降、延迟增大
+
+4. 系统崩溃
+
+   严重情况下，过长的GC导致TaskManager失联，系统崩溃。
+
+#### 10.1.3 如何定位数据倾斜
+
+步骤1：定位反压
+
+​		定位反压有2种方式：Flink Web UI自带的反压监控（直接方式）、Flink Task Metrics（间接方式）
+
+​		通过监控反压的信息，可以获取到数据处理瓶颈的subtask。
+
+步骤2：确定数据倾斜
+
+​		Flink Web UI自带subtask接收和发送的数据量。当subtask之间处理的数据量有较大的差距，则该subtask出现数据倾斜。如下图所示，红框的subtask出现数据热点。
+
+![img](../image/interview/Flink/数据倾斜stubtask.png)
+
+#### 10.1.4 解决方法
+
+​		不同场景出现的数据倾斜，使用不同的解决方案
+
+##### 10.1.4.1 keyBy 之前发生数据倾斜
+
+​		如果keyBy之前就存在数据倾斜，上游算子的某些实例可能处理的数据较多，某些实例可能处理的数据较少，产生该情况可能是因为数据源的数据本身就不均匀。
+
+​		**场景：**Flink消费kafka上下游并行度不一致导致的数据倾斜
+
+​		**解决思路：**需要让Flink任务强制进行shuffle。使用shuffle、rebalance或rescale算子即可将数据均匀分配。
+
+通过调整并发度，解决数据源消费不均匀或者数据源反压的情况。调整并发度的原则：KafkaSource并发度与kafka分区数一样的，或者kafka分区数是KafkaSource并发度的整数倍。
+
+​		但是会有一种情况，为了加快数据的处理速度，来设置Flink消费者的并行度大于kafka的分区数。如果不做任何的设置会导致部分Flink Consumer线程永远消费不到数据，需要设置redistributing，也就是数据重分配。
+
+```java
+dataStream.setParallelism(2)
+  .rebalance() // .rescale()
+  .print()
+  .setParallelism(4)
+```
+
+​		其中，Rebalance分区策略，数据会以round-robin的方式对数据进行再次分区，可以全局负载均衡。Rescale分区策略基于上下游并行度，会将数据以循环的方式输出到下游的每个实例中。
+
+##### 10.1.4.2 keyBy后的聚会操作存在数据倾斜
+
+**1.为什么不能直接用二次聚合来处理**
+
+​		Flink是实时流处理，如果keyBy之后的聚合操作存在数据倾斜，且没有开窗口（没攒批）的情况下，简单的认为使用两阶段聚合，是不能解决问题的。因为这个时候Flink是来一条处理一条，且向下游发送一条结果，对原来keyBy的维度（第二阶段聚合）来讲，数据并没有减少，且结果重复计算。
+
+​		![image-20221219151226825](../image/interview/Flink/数据倾斜keyBy后聚合操作.png)
+
+**2.使用LocalKeyBy的思想**
+
+​		在keyBy上游算子数据发送之前，首先在上游算子的本地对数据进行聚合后，再发送到下游，使下游接收到的数据量大大减少，从而使得keyBy之后的聚合操作不再是任务的瓶颈。类似MapReduce中Combiner的思想，**但是这要求聚合操作必须是多条数据或者一批数据才能聚合，单条数据没有办法通过聚合来减少数据量**。从Flink LocalKeyBy实现原理来讲，必然会存在一个**积攒批次**的过程，在上游算子中必须攒够一定的数据量，对这些数据聚合后再发送到下游。
+
+实现方式：SQL可以指定参数，开启miniBatch和LocalGlobal功能
+
+```java
+// 初始化table environment
+TableEnvironment env = ...
+// 获取 tableEnv的配置对象
+Configuration conf = env.getConfig().getConfiguation();
+// 设置参数：
+// 开启miniBatch
+conf.setString("table.exec.mini-batch.enabled", "true");
+// 批量输出的间隔时间
+conf.setString("table.exec.mini-batch.allow-latency", "5s");
+// 防止OOM设置每个批次最多缓存数据的条数，可以设置为2万条
+conf.setString("table.exec.mini-batch.size", "20000");
+// 开启LocalGlobal
+conf.setString("table.optimizer.agg-phase-strategy", "TWO_PHASE");
+```
 
 
 
+##### 10.1.4.3keyBy后的窗口聚合操作存在数据倾斜
+
+​		因为使用了窗口，变成了有届数据（攒批）的处理，窗口默认是触发时才会输出一条结果发往下游，所以可以使用两阶段聚合的方式：
+
+**实现思路：**
+
+- 第一阶段聚合：key拼接随机数前缀或后缀，进行keyBy、开窗、聚合
+
+  注意：聚合完不再是windowedStream，要获取WindowEnd作为窗口标记作为第二阶段分组依据，避免不同窗口的结果聚合到一起。
+
+- 第二阶段聚合：按照原来的key及windowEnd作keyBy、聚合
+
+​		举例：统计一个网站各个端的每分钟的pv
+
+```sql
+-- 最内层，讲分组的key，也就是plat加上一个随机打散
+select winEnd,split_index(plat1, '_', 0) as plat2, sum(pv)
+from
+(
+  select TUMBLE_END(proc_time, INTERVAL '1' MINUTE) as winEnd, 
+         plat1, count(1) as pv
+  from
+  (
+    select plat || '_' || cast(cast(RAND() * 100 as int)as string) as plat1,
+           proc_time
+    from source_kafka_table
+  ) as t
+  group by TUMBLE(proc_time. INTERVAL '1' MINUTE), plat1
+) as t
+group by winEnd,split_index(plat1, '_', 0)
+```
+
+```java
+env.addSource(new CustomBeanSource()).keyBy(ele -> ele.getDeviceName() + "-" + new Random().nextInt(10))
+  .timeWindow(Time.secons(60))
+  .sum("bandWidth")
+  .keyBy(ele -> ele.getDeviceName())
+  .sum("bandWidth")
+  .addSink(...)
+```
+
+​		
+
+### 10.2 并行度设置
+
+#### 10.2.1 全局并行度计算
+
+​		开发完成后，先进行压测。任务并行度给10个以下，测试单个并行度的处理上限。
+
+**总QPS / 单并行度的处理能力 = 并行度**
+
+​		开发完Flink作业，压测的方式很简单，先在kafka中积压数据，之后开启flink任务，出现反压，就是处理瓶颈。相当于水库先积水，一下子泄洪。
+
+​		不能只从QPS去得出并行度，因为有些字段少、逻辑简单的任务，单并行度一秒处理几万条数据。而有些数据字段多，处理逻辑复杂，单并行度一秒只能处理1000条数据。
+
+​		最好根据高峰期QPS压测，并行度 x 1.2倍，富余一些资源。	
 
 
+
+### 10.3 Flink SQL优化
+
+#### 10.3.1 设置空闲状态保留时间
+
+​		忘记设置空闲状态保留时间导致状态爆炸，列举两个场景：
+
+- FlinkSQL 的regular join（inner、left、right），左右表的数据都会一直保存在状态里，不会清理！要么设置TTL，要么使用FlinkSQL的interval join
+- 使用Top-N语法进行去重，重复数据的出现一般都位于特定区间内（例如一个小时或一天内），过了这段时间之后，对应的状态就不再需要了。
+
+Flink SQL可以指定空闲状态（即未更新的状态）被保留的最小时间，当状态中某个key对应的状态未更新的时间达到阈值时，该条状态被自动清理：
+
+```java
+// API 指定
+tableEnv.getConfig().setIdleStateRetention(Duration.ofHours(1));
+// 参数指定
+Configuration configuration = tableEnv.getConfig().getConfiguration();
+configuration.setString("table.exec.state.ttl", "1h")
+```
+
+
+
+#### 10.3.2 开启MiniBatch
+
+​		MiniBatch是微批处理，原理是缓存一定的数据后再触发处理，以减少对State的访问，从而提升吞吐并减少数据的输出量。Minibatch主要依靠在每个Task上注册的Timer线程来触发微批，需要消耗一定的线程调度性能。
+
+**开启方式：**
+
+```java
+// 初始化table environment
+TableEnvironment env = ...
+// 获取tableEnv的配置对象
+Configuration conf = env.getConfig().getConfiguration();
+// 设置参数：
+// 开启MiniBatch
+conf.setString("table.exec.mini-batch.enabled", "true")
+// 批量输出的间隔时间
+conf.setString("table.exec.mini-batch.allow-latency", "5s")
+// 防止OOM设置每个批次最多缓存数据的条数，可以设为2万条
+conf.setString("table.exec.mini-batch.size", "20000")
+
+```
+
+**使用场景：**
+
+​		微批处理通过增加延迟换取高吞吐，如果有超低延迟的要求，不建议开启微批处理。通常对于聚合的场景，微批处理可以显著提升系统性能，建议开启。
 
 
 

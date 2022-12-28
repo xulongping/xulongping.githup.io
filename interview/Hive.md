@@ -1012,7 +1012,7 @@ alter table tablename unarchive partition（partition_col=partition_val）
 
 ## 5.常用SQL
 
-####  5.1 列转行 
+### 5.1 列转行 
 
 ```sql
 SELECT app_name, bpage
@@ -1024,7 +1024,7 @@ from
 LATERAL VIEW explode(array(bpage_name, bpage_code)) b as bpage
 ```
 
-#### 5.2 行转列
+### 5.2 行转列
 
 ```sql
 SELECT app_name, concat_ws(',', collect_set(module_name)) as module_names
@@ -1036,7 +1036,7 @@ from
 GROUP BY app_name
 ```
 
-#### 5.3 生成20220901～20221031日的日期，每个日期一行
+### 5.3 生成20220901～20221031日的日期，每个日期一行
 
 ```sql
 SELECT date_add(from_unixtime(unix_timestamp('20220901', 'yyyyMMdd'), 'yyyy-MM-dd'), i) as dt, i
@@ -1092,9 +1092,90 @@ function(args) OVER(ORDER BY expression [ASC] [DESC])
 
    返回当前行的后N行的值，默认offset=1，也就是默认取后1个值
 
+### 5.5 UDF
 
+​		当Hive提供的内置函数无法满足业务处理需要时，可以考虑使用用户自定义函数UDF（user-defined function）。根据用户自定义函数类别分为以下三种：
 
+- UDF（User-Defined-Function）：一进一出
+- UDAF（User-Defined Aggregation Function）：聚合函数，多进一出，类似于：count/max/min
+- UDTF（User-Defined Table-Generation Function）：一进多出，如lateral view explode （）
 
+UDF函数demo：
+
+**（1）导入依赖**
+
+```xml
+<artifactId>hive-demo</artifactId>
+<version>1.0-SNAPSHOT</version>
+<!-- 声明并引入所有子模块都会自动引入该依赖-->
+<dependencies>
+  <dependency>
+    <groupId>org.apache.hive</groupId>
+    <atrifactId>hive-exec</atrifactId>
+    <version>3.1.2</version>
+  </dependency>
+</dependencies>
+```
+
+**(2)继承UDF类并实现业务代码**
+
+```java
+public class MyUDF extends GenericUDF {
+  // 1.初始化
+  // 合法性校验
+  public ObjectInspector initialize(ObkectInspector[] arguments) throws UDFArgumentExecption {
+    if(arguments.length != 1){
+      throw new UDFArgumentExecption("参数个数部位1");
+    }
+    return PrimitiveObjectInspectorFactory.javaIntObjectInspector;
+  }
+  // 2.执行计算
+  // 处理数据
+  public Object evaluate(DeferredObject[] arguments) throw HiveException {
+    String input = arguments[0].get().toString();
+    if(input == null){
+      return 0;
+    }
+    return input.length();
+  }
+  // 3.获取执行计划的顺序，一般返回一个“”就行
+  public String getDisplayString(String[] children){
+    return "";
+  }
+}
+```
+
+**（3）创建临时函数**
+
+​		编写好代码后，点击Maven，packet打包。找到jar包位置，将打包好的jar包拖到hive按照目录下的lib目录当中，将jar包添加到hive的classpath：
+
+```shell
+add jar /opt/hive/lib/hive-demo-1.0-SNAPSHOT.jar
+```
+
+创建临时函数与开发好的java class进行关联
+
+```sql
+create temporary function my_len as "com.xzy.udf.MyUDF";
+```
+
+**（4）使用测试**
+
+```sql
+select my_len('zhang')
+5
+```
+
+### 5.6 DDL
+
+#### 5.6.1 增加字段
+
+​		hive表中指定位置增加一个字段
+
+```sql
+alter table 表名 add columns(列名 string comment '');
+alter table 表名 change 要移动的列名 移动后的列名 string after 指定位置的列名;
+```
 
 
 

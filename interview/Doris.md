@@ -61,3 +61,19 @@
 ​		
 
 ## 2.
+
+## 6.Doris选型
+
+### 6.1 为什么选择Doris
+
+​		目前开源的OLAP引擎很多，只考察比较出名的几个：ClickHouse、Druid和Doris。
+
+最终选择Doris，主要基于以下几方面的考虑：
+
+- Doris的查询速度是亚秒级的，并且相对ClickHouse来说，Doris对高并发的支持要优秀的多。
+
+- Doris扩容方便，数据可以自动进行负载均衡，解决了原系统的痛点。ClickHouse在扩容时需要进行数据重分布，工作量比较大
+
+- Doris支持Rollup和Online Schema Change，这对日常业务需求十分友好。而且由于支持Mysql协议，Doris可以很好地和之前已有的系统进行融合。而Druid对标准SQL的支持有限，并且不支持Mysql协议，改造成本很高。
+
+  
