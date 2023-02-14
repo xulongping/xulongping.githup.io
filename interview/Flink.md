@@ -8,7 +8,7 @@
 
 
 
-<img src="../image/interview/Flink/运行架构.png" alt="运行架构" style="zoom:80%;" />
+<img src="../image/interview/Flink/运行架构.svg" alt="运行架构" style="zoom:80%;" />
 
 <img src="../image/interview/Flink/运行架构-中文.png" alt="运行架构-中文" style="zoom:50%;" />
 
@@ -18,15 +18,37 @@
 
   是Flink作业任务提交客户端，主要将批处理或流处理应用程序编译为数据流图（JobGraph），然后提交给JobManager。
 
+  Client不是运行时和程序执行的一部分，而是用于准备数据流并将其发给JobManager。之后，客户端可以断开连接（分离模式），或保持连接来接收进程报告（附加模式）。
+
 - JobManager（任务协调者）
 
-  是Flink的中心工作协调组件，它根据作业提交模型，并针对不同的资源管理程序（Resource Provider），实现不同的高可用性、资源分配行为。
+  JobManger具有许多与协调Flink应用程序的分布式执行有关的职责：它决定何时调度下一个task（或一组task）、对完成的task或执行失败做出反应、协调checkpoint、协调从失败中恢复等。这个进程由三个不同的组件组成：
+
+  - ResourceManger
+
+    ResourceManger负责Flink集群中的资源提供、回收、分配—它管理task slots，这是Flink集群中资源调度单位。ResourceManager可以分配TaskManager中的slots，新启动的TaskManager，需要向ResourceManager进行注册，之后它里面的资源才能服务与作业的请求。
+
+    - SlotManager
+
+      管理着Slot状态，这些Slot状态是通过TaskExecutor到ResourceManger之间的心跳来进行更新的，在心跳信息中包含了TaskExecutor中所有的Slot状态。
+
+      当JobManger调度一个任务时候，会向ResourceManger发起Slot请求。收到请求的ResourceManger会转交给SlotManager，SlotManager会去检查它里面的可用的Slot有没有符合请求条件的。如果有的话，它就会向相应的TaskExecutor发起Slot申请。如果请求成功，TaskExecutor会主动想的向JobManster offer 这个slot。
+
+  - Dispatcher
+
+    Dispatcher提供一个Rest接口，用来提交Flink应用程序执行，并为每个提交的作业启动一个新的JobMaster。它还运行Flink WebUI来提供作业执行信息。
+
+  - JobMaster
+
+    JobMaster负责管理单个JobGraph的执行，Flink集群中可以同时运行多个作业，每个作业都有自己的JobMaster。
+
+  始终至少有一个JobManager。高可用（HA）设置中可能有多个JobManager，其中一个始终是leader，其他的则是standby。
 
 - TaskManager
 
-  实际执行Flink作业的服务。
+  TaskManager（也称为worker）执行作业流的task，并且缓存和交换数据流。
 
-  在启动的时候就设置好了槽位数（Slot），每个 slot 能启动⼀个 Task，Task 为线程。从JobManager 处接收需要部署的 Task，部署启动后，与⾃⼰的上游建⽴ Netty 连接，接收数据并处理。
+  必须始终至少有一个TaskManger。在TaskManger中资源调度的最小单位是task slot。TaskManger中task slot的数量表示并发处理task的数量。请注意一个task slot中可以执行多个算子。
   
   Slot是资源调度的最小单位，slot的数量限制了TaskManager能够并行的任务数量
 
@@ -317,7 +339,31 @@ bin/yarn-session.sh -n 7 -s 8 -jm 3072 -tm 32768 -qu root.. -nm - -d
 
 ##### 1.3.6.3 任务槽和并行度的关系
 
+### 1.4 问题
 
+#### 1.4.1 Flink的一个作业是如何生成的？
+
+​		理解作业是如何在Flink中表达的？
+
+<img src="../image/interview/Flink/作业生成流程.png" alt="作业生成流程" style="zoom:50%;" />
+
+1. Client将作业code生成StreamGraph，描述了算子和算子之间逻辑的拓扑关系
+
+2. Client将StreamGraph转换为JobGrahp：Operator chain（又称JobVertex）
+
+   - 将并不涉及到shuffle的算子进行合并
+   - 对于同一个operator chain里面的多个算子，会在同一个task中执行
+   - 对于不在同一个operator chain里的算子，会在不同的task中执行
+
+3. Client中的ClusterClient将JobGraph提交给Dispatcher，Dispatcher根据JobGraph创建相应的JobMaster并运行起来
+
+4. JobMaster将JobGraph转换为ExecutionGraph
+
+   逻辑图JobVertex中的一个节点，会对应着并发数个执行节点ExecutionVertex，节点对应着一个个任务，这些任务最后会作为实体部署到Worker节点上，并执行实际的数据处理业务逻辑。
+
+5. JobMaster将ExecutionGraph转换为物理执行计划（可执行）
+
+​		
 
 ## 2.DataStream API
 
@@ -584,6 +630,8 @@ Flink内置水位线生成器：
 
 检查点配置可以使用.setCheckpointStrorage()来设置
 
+
+
 ```java
 // 配置存储检查点到JobManager堆内存
 env.getCheckpointConfig().setCheckpointStorage(new JobManagerCheckpointStorage());
@@ -591,7 +639,7 @@ env.getCheckpointConfig().setCheckpointStorage(new JobManagerCheckpointStorage()
 env.getCheckpointConfig().setCheckpointStorage(new FileSystemCheckpointStorage("hdsf://namenode:40010/flink/checkpoints"));
 ```
 
-	##### 6.1.5 checkpoint相关配置
+##### 6.1.5 checkpoint相关配置
 
 ```java
 StreamExecutionEnvironment env = StreamExecutionEnvironment.getExecutionEnvironment();
@@ -708,6 +756,20 @@ checkpointConfig.setCheckpointStorage("hdfs://my/checkpoint/dir")
 ​		端到端的exactly-one对sink要求比较高，具体实现主要有幂等写入和事务性写入两种方式。密等写入的场景依赖于业务逻辑，更常见的是用事务性写入。而事务性写入又有预写日志（WAL）和两阶段提交（2PC）两种方式。
 
 ​		如果外部系统不支持事务，那么可以用预写日志的方式，把结果数据先当成状态保存，然后再收到checkpoint完成通知时，一次性写入sink系统。
+
+### 6.3 问题总结
+
+#### 6.3.1 Flink作业在很多情况下有可能失败，失败之后重新运行时，是如何保证数据一致性的？
+
+​		Flink基于Chandy-Lamport算法，会把分布式的每个节点的状态保存到分布式系统里面作为Checkpoint（检查点），过程大致如下：
+
+1. 从数据源端开始注入Checkpoint Barrier，它是一种比较特殊的信息
+2. 它会跟普通的事件一样随着数据流去流动，当Barrier到达算子之后，这个算子会把它当前的本地状态进行快照保存，当Barrier流动到Sink，所有的状态都保存完整之后，它就形成一个全局的快照。
+3. 当作业失败之后，就可以通过远程文件系统里保存的Chenkpoint进行回滚：先把Source会滚到Checkpoint记录的offset，然后把有状态节点当时的状态会滚到对应的事件点，进行重新计算。这样既可以不用从头开始计算，又能保证数据语义的一致性。
+
+
+
+
 
 ## 7.Flink SQL
 
@@ -893,7 +955,7 @@ StreamTableEnvironment tableEnv = StreamTableEnvironment.create(env);
 
 #### 7.3.2 窗口
 
-		##### 7.3.2.1 窗口表值函数（Windowing TVFs，新版本）
+##### 7.3.2.1 窗口表值函数（Windowing TVFs，新版本）
 
 ​		从1.13版本开始，Flink开始使用窗口表值函数（Windowing table-valued functions，Windowing TVFs）来定义窗口。
 

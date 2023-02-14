@@ -398,7 +398,7 @@ spark，hive的执行过程
 
 - 解决方法
 
-  开启map端join：set hive.auto.convert.jon = true; 默认是打开的。
+  开启map端join：set hive.auto.convert.join = true; 默认是打开的。
 
   - 开启该设置后，join时会在map端将小表缓存到内存中（缓存为hash table），在map端执行join
   - 小表默认是1000行或者25Mb大小，可以通过设置参数提高小表的阈值：set hive.mapjoin.smalltable.filesize=25000000;

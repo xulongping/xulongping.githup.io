@@ -17,3 +17,5 @@
    #从容器拷贝到本地容器
 
    docker cp master:/opt/test.txt /home/
+   
+3. 

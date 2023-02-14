@@ -111,4 +111,4 @@ Encoder-Decoder框架应用任务：
 
 ​		Encoder输入是一副图片，输出是能够描述图片语义内容的一句描述语
 
-**文本处理和语音处理识别的Encoder部分通常采用RNN模型，图像处理Encoder一般采用CNN模型。**
+**文本处理和语音处理识别的Encoder部分通常采用RNN模型，图像处理Encoder一般采用CNN模型。**           

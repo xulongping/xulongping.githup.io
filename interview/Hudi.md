@@ -1,437 +1,467 @@
-## 4.Spark
+<center><font size='60'>Hudi</font></center>
 
-#### 4.1 spark核心概念和架构
 
-1. **Spark特点是什么？**
 
-   ​		Spark是一个基于内存的，用于大规模数据处理（离线计算、实时计算、快速查询-交互式查询）的统一分析引擎。它内部的组成模块：SparkCore、SparkSQL、SparkStreaming、SparkMlib、SparkGraghX等。
+[TOC]
 
-   ​		快：Spark计算速度是MapReduce计算速度的10～100倍
 
-   ​		易用：MR支持1种计算模型，Spark支持更多的计算模型（算法多）
 
-   ​		通用：Spark能够进行离线计算、交换式查询（快速查询）、实时计算、机器学习、图计算
+## 1.概述
 
-   ​		兼容性：Spark支持大数据中的Yarn调度，支持mesos。可以处理hadoop计算的数据。
+### 1.1 背景		
 
-   
+​		Hudi全称Hadoop Upsert Delete and Incremental。Hudi最初的设计目标：在Hadoop上实现update和delete操作。
 
-2. **Spark提交作业的参数**
+​		为什么会有update和delete的需求？uber在开元Hudi的文章中解释了：
 
-   使用spark-submit  提交任务，会涉及到几个重要那个的参数：
+> 最初uber使用的是Lambda架构，但是有个问题是计算逻辑分为批量和实时两种，要保持两者的逻辑完全一致很困难（毕竟是两套代码）。
+>
+> 然后uber转向了Kappa架构，使得两套代码变为一套，但是存储依然有两套，分别支持实时写入和批量写入。
 
-   num-executors: 启动executors的数量，默认为2
+​		为了把存储统一起来，减少运维的压力，就需要**让负责批量写入的存储系统也能支持实时写入**，这就产生了update和delete的需求。
 
-   executor-cores: 每个executor使用的内核数，默认为1，官方建议2—5个，我们使用是4个
+### 1.2 Hudi特性
 
-   executor-memory: executor内存大小，默认1G
+- 可插拔索引机制支持快速Upsert/Delete
 
-   diver-cores: driver使用内核数，默认为1
+- 支持增量拉取表变更以进行处理
 
-   driver-memory: driver内存大小，默认512M
+- 支持事务提交及回滚，并发控制
 
-   
+- 支持Spark、Presto、Trino、Hive、Flink等引擎的SQL读写。
 
-3. **Spark on Yarn的作业的提交流程**
+- 自动管理小文件，数据聚簇，压缩，清理
 
-   Spark客户端直接连接Yarn，不需要额外构建Spark集群。有yarn-client和yarn-cluster两种模式，主要区别在于：Driver程序的运行节点。
+- 流式摄入，内置CDC源和工具
 
-   **Driver**：是spark驱动器节点，主要用于执行spark任务中的main方法，负责实际代码的执行。
+- 内置可扩展存储访问的元数据跟踪
 
-   ​	a.将用户程序转化为作业（Job）
+  
 
-   ​	b.在Executor之间调度任务（task）
+### 1.3 使用场景
 
-   ​	c.跟踪Executor的执行情况
+1. 近实时写入
+   - 减少碎片化工具的使用
+   - CDC增量导入RDBMS
+   - 限制小文件的大小和数量
+2. 近实时分析
+   - 相对于秒级存储（Druid，OpenTSDB），节省资源
+   - 提供分钟级别时效性，支撑更高效的查询
+   - Hudi作为lib，非常轻量
+3. 增量pipeline
+   - 区分arrivetime和event time处理延迟数据
+   - 更短的调度interval减少端到端延迟（小时—>分钟）=> Incremental Processing。
+4. 增量导出
+   - 替代部分Kafka的场景，数据导出到在线服务存储 e.g. ES
 
-   ​	d.通过UI展示查询运行情况
+## 2.基本概念
 
-   Executor：Executor并不是一个进程，而是ExecutorBackend的一个进程，Executor是它的执行类，负责spark作业中运行具体的任务，任务之间是彼此相互独立的。Spark应用启动时，Executor节点同时启动，并且始终伴随整个spark应用中的生命周期存在，如果executor节点发生故障或者崩溃，spark会将故障节点的任务调度到其它executor节点上执行。
+### 2.1 时间轴（TimeLine）
 
-   ​	a.运行组成spark应用的任务，并将结果返回给驱动器进程
+![image-20230207094853851](../image/interview/hudi/时间轴.png)
 
-   ​	b.通过自身的块管理器（Block Manager）为用户程序中要求缓存的RDD提供内存式存储。RDD时直接缓存在executor进程内的，因此任务可以在运行时充分利用缓存数据加速计算。
+​		Hudi的核心是维护表上在不同的**即时时间（instants）**执行的所有操作的**时间轴（timeline）**，这有助于提供表的即时视图，同时还有效地支持按到达顺序检索数据。一个instant由以下三个部分组成：
 
-   ![spark通用运行流程图](/Volumes/Computer/Learning/Git/xulongping.githup.io/image/interview/spark通用运行流程图.png)
+1. **Instant action：在表上执行的操作类型**
 
-   
+   - commits：一次commit表示将一批数据原子性地写入一个表。
+   - cleans：清除表中不再需要的旧版本文件的后台活动。
+   - delta_commit：增量提交指的是将一批数据原子性地写入一个MergeOnRead类型的表，其中部分或所有数据可以写入增量日志。
+   - compaction：合并Hudi内部差异数据结构的后台活动，例如：将更新操作从基于行的log日志文件合并到列式存储的数据文件。在内部，compaction体现为timeline上的特殊提交。
+   - rollback：表示当commit/delta_commit不成功时进行会滚，其会删除在写入过程中产生的部分文件。
+   - savepoint：将某些文件组标记为已保存，以便其不会被删除。在发生灾难需要恢复数据的情况下，它有助于将数据集还原到时间轴上的某个点。
 
-   
+2. **Instant time**
 
-   **（1）yarn client运行模式**
+   通常是一个时间戳（例如：20230207010349），它按照动作开始时间的顺序单调增加。
 
-   ![spark-yarn-client运行模式](/Volumes/Computer/Learning/Git/xulongping.githup.io/image/interview/spark-yarn-client运行模式.png)
+3. **State**
 
-   
+   - requested：表示某个action已经调度，但尚未执行。
+   - inflight：表示action当前正在执行
+   - completed：表示timeline上的action已经完成。
 
-   **（2）yarn cluster运行模式**
+4. **两个时间概念**
 
-   ![spark-yarn-cluster-运行模式](/Volumes/Computer/Learning/Git/xulongping.githup.io/image/interview/spark-yarn-cluster-运行模式.png)
+   区分两个重要的时间概念：
 
-   
+   - arrival time：数据到达Hudi的时间，commit time。
+   - event time：record中记录的时间。
 
-4. **spark的容错机制**
+   ![image-20230207111505806](../image/interview/hudi/时间轴demo.png)
 
-   一般而言，对于分布式系统，数据集的容错性通常有两种方式：
-
-   ​	a.数据检查点（在Spark中对应的Checkpoint机制）
-
-   ​	b.记录数据的更新（在Spark中对应Lineage血缘机制）
-
-   ​		对于大数据而言，数据检查点操作（一般是将RDD写入持久存储，如HDFS）成本较高，可能涉及大量数据复制操作，消耗 I/O资源。而通过血统机制则不需要存储正在的数据，容错的成本比较低。但是问题在于如果血缘很长（即依赖的关联链路很长），如果失败重算，那代价也是很高的，所以spark提供了checkpoint的API，将恢复代价更小的选择交给用户，进一步控制容错的时间。
-
-   ​		通常在含有宽依赖的容错中，使用Checkpoint机制设置检查点，这样就不至于重新计算父RDD而产生冗余计算了。
-
-   
-
-5. **如何理解Spark中血统（RDD）的概念？它的作用是什么？**
-
-   概念：RDD是弹性分布式数据集，是Spark中最基本的数据抽象，代表一个不可变、可分区、里面的元素可并行计算的集合。
-
-   作用：提供了一个可抽象的数据模型，将具体的应用逻辑表达为一系列转换操作（函数）。另外不同RDD之间的转换操作之间还可以形成依赖关系，进而实现管道化，从而避免了中间结果的存储，大大降低了数据复制、磁盘IO和序列化开销，并且还提供了更多的API（map/reduce/filter/groupBy）。
-
-   RDD在lineage依赖方面分为两种窄依赖和宽依赖，用来解决数据容错时的高效性以及划分任务时候起到重要作用。
-
-   
-
-6. **简述Spark的宽窄依赖，以及Spark如何划分stage，每个stage又根据什么决定task个数**
-
-   窄依赖：父RDD的一个分区只会被子RDD的一个分区依赖
-
-   宽依赖：父RDD的一个分区会被子RDD的多个分区依赖（涉及到shuffle）
-
-   Stage是如何划分的呢？
-
-   根据RDD之间的依赖关系的不同将Job划分成不同的stage，遇到一个宽依赖则划分一个stage
-
-   每个stage又根据什么决定task个数？
-
-   Stage是一个taskSet，将stage根据分区数划分成一个个的task
-
-   ![spark-stage](/Volumes/Computer/Learning/Git/xulongping.githup.io/image/interview/spark-stage.png)
+   ​		 上图中采用时间（小时）作为分区字段，从10:00开始陆续产生各种commits，10:20来一条9:00的数据，根据event time该数据仍然可以落到9:00对应的分区，通过timeline直接消费10:00（commit time）之后的增量更新（只消费有新commits的group），那么这条延迟的数据仍然可以被消费到。
 
    
 
-7. **列举Spark常用的transformation和action算子，有哪些算子会导致shuffle**
+### 2.2 文件布局（Flie Layout）
 
-   spark的运算操作有两种类型：transformation和action：
+​		Hudi将一个表映射为如下文件结构
 
-   transformation：代表的是转化操作，就是计算流程，然后是RDD[T]，可以是一个链式的转化，并且是延迟触发的。
+![image-20230207111855660](../image/interview/hudi/文件布局.png)
 
-   action：代表是一个具体的行为，返回的值非RDD类型，可以是object，或是一个数值，也可以是Unit代表无返回值，并且action会立即触发job的执行。
+​		Hudi也是采用元数据日志基于地址链接的snapshot来维护自己的数据的。元数据存储在隐藏目录.hoodie中，数据文件则是和Hive类似采用分区目录的形式进行组织。每个分区文件被分为多个文件组，用一个filedid进行标识。每个文件组包含几个文件切片，每个切片包含一个在某个提交/压缩瞬间生成的base文件（.parquet），以及一组日志文件（.log）。其文件的命名方式：fileid+time
 
-   Transformation的官方文档方法集合如下：
+​		Hudi存储分为两个部分：
 
-   ```
-   map
-   filter
-   flatMap
-   mapPartitions
-   mapPartitionsWithIndex
-   sample
-   union
-   intersection
-   distinct
-   groupByKey
-   reduceByKey
-   aggregateByKey
-   sortByKey
-   join
-   cogroup
-   cartesian
-   pipe
-   coalesce
-   repartition
-   repartitionAndSortWithPartitions
-   ```
+1. 元数据
 
-   Action的官方文档方法集合如下：
+   .hoodie目录对应着表的元数据信息，包括表的版本管理（Timeline）、归档目录（存放过时的instant也就是版本），一个instant记录了一次提交（commit）的行为、时间戳和状态，Hudi以时间轴的形式维护了在数据集上执行的所有操作的元数据
 
-   ```
-   reduce
-   collect
-   count
-   first
-   take
-   takeSample
-   takeOrdered
-   saveAsSequenceFile
-   saveAsObject
-   ```
+2. 数据
 
-   有哪些会引起shuffle过程的算子：
+   和hive一样，以分区方式存放数据；分区里面存放着Base File（.parquet）和Log File（.log.*）
 
-   ```
-   reduceByKey
-   groupByKey
-   ...ByKey
-   ```
+​		文件的具体管理结构如下：
 
-   
+![image-20230207112507628](../image/interview/hudi/FileManager.png)
 
-8. **foreachPartition和mapPartitions的区别**
+1. Hudi将数据表组织成分布式文件系统基本路径（basepath）下的目录结构
 
-   从官网文档的api可以看出foreachPartition返回值为空，应该属于action运算操作，而mapPartitions是在tranformation中，所以是转化操作。此外在应用场景上区分是mapPartitions可以获取返回值，继续在返回RDD上做其它操作，而foreachPartition因为没有返回值并且是action操作，所以使用它一般都是在程序末尾比如说要落地数据到存储系统中如mysql、es、hbase中。
+2. 表被划分为多个分区，这些分区是包含该分区的数据文件的文件夹，非常类似于Hive表
 
-   
+3. 在每个分区中，文件被组织成文件组，由文件ID唯一标识
 
-9. **reduceByKey与groupByKey的区别，哪一种更具优势？**
+4. 每个文件组包含几个文件片（FileSlice）
 
-   reduceByKey：按照key进行聚合，在shuffle之前有combine（预聚会操作），返回结果是RDD[k,v]。聚合操作可以通过函数自定义。
+5. 每个文件片包含：
 
-   groupByKey：按照key进行分组，直接进行shuffle。对每个key进行操作，但只生成一个sequence，如果需要对sequence进行aggregation操作（注意，groupByKey本身不能自定义操作函数），那么选择reduceByKey/aggregateByKey更好。因为groupByKey不能自定义函数，需要先用groupByKey生成RDD，然后才能对此RDD通过map进行自定义函数操作。
+   - 一个基本文件（.parquet）：在某个commit/compaction即时时间（instant time）生成的（MOR可能没有）
+   - 多个日志文件（.log.*），这些日志文件包含自生成基本文件以来对基本文件的插入/更新（COW没有）
 
-   ```
-   val words = Array("one", "two", "two", "three", "three", "three")
-   
-   val wordPairsRDD = sc.parallelize(words).map(word => (word, 1))
-   
-   val wordCountsWithReduce = wordPairsRDD.reduceByKey(_ + _)
-   
-   val wordCountsWithGroup = wordPairsRDD.groupByKey().map(t => (t._1, t._2.sum))
-   ```
+6. Hudi采用了多版本并发控制（Multi Version Concurrency Control，MVCC）
 
-   对大数据进行复杂计算时，reduceByKey优于groupByKey。
+   - compaction操作：合并日志和基本文件以产生新的文件片
+   - clean操作：清除不使用的/旧的文件片以收回文件系统上的空间
 
-   
+   ![image-20230207114222223](../image/interview/hudi/文件结构.png)
 
-10. **Repartition和Coalesce的关系与区别？**
+7. Hudi的base file（parquet文件）在footer的meta中记录了record key组成的BloomFilter，用于在file based index的实现中实现高效率的key contains检测。只有不在BloomFilter的key才需要扫描整个文件消灭假阳。
 
-    关系：两者都是用来改变RDD的partition数量的，repartition底层调用的就是coalesce方法：coalesce(numPartitions, shuffle=true)
+8. Hudi的log（avro文件）是自己编码的，通过积赞数据buffer以LogBlock为单位写出，每个LogBlock包含magic number、size、content、footer等信息，用于数据读、校验和过滤。
 
-    区别：repartition一定会发生shuffle，coalesce根据传入的参数来判断是否发生shuffle。一般情况下增大rdd的partition数量使用repartition，减少partition数量时使用coalesce。
+   ![image-20230207114758233](../image/interview/hudi/文件格式.png)
 
-    
+### 2.3 索引（Index）
 
-11. **简述spark中的缓存（cache和persist）与checkpoint机制，并指出两者的区别和联系**
+#### 2.3.1 原理
 
-    位置：Persist和Cache将数据保存在内存，Checkpoint将数据保存在HDFS
+​		Hudi通过索引机制提供高效的upserts，具体是将给定的hoodie key（record key + partition path）与文件id（文件组）建立唯一映射。这种映射关系，数据第一次写入文件后保持不变，所以，一个FileGroup包含了一批record的所有版本记录。**Index用于区分消息是insert还是update**。
 
-    生命周期：Presist和Cache程序结束后会被清除或手动调用unpersist方法，Checkpoint永久存储不会被删除。
+![image-20230207135231686](../image/interview/hudi/Index引用场景.png)
 
-    RDD依赖关系：Presist和Cache，不会被丢掉RDD间的依赖链关系，CheckPoint会斩断依赖链。
+​		Hudi未来消除不必要的读写，引入了索引的实现。在有了索引之后，更新的数据可以快速定位到对应的File Group。上图为例，白色是基本文件，黄色是更新数据，有了索引机制，可以做到：**避免读取不需要的文件、避免更新不必要的文件、无需将更新数据与历史数据做分布式关联，只需要在File Group内做合并。**
 
-    
+#### 2.3.2 索引选项
 
-12. **spark中共享变量（广播变量和累加器）的基本原理与用途**
+#### 2.3.3 全局索引与非全局索引
 
-    广播变量：广播变量是在每个机器上缓存一份，不可变，只读的，相同的变量，该节点每个任务都能访问，起到节省资源和优化的作用。它通常用来高效分发较大的对象。
+#### 2.3.4 索引的选择策略
 
-    累加器：是spark提供的一种分布式的变量机制，其原理类似于mapreduce，即分布式的改变，然后聚合这些改变。累加器的一个常见用途是在调试时对作业执行过程中的事件进行计数。
 
-    
 
-13. **当spark涉及到数据库的操作时，如何减少spark运行中的数据连接数？**
+### 2.4 表类型（Table Types）
 
-    使用foreachPartition代替foreach，在foreachPartition内获取数据库的连接
+#### 2.4.1 Copy on Write
 
-    
+​		在COW表中，只有数据文件/基本文件（.parquet），没有增量日志文件(.log.*)。
 
-14. **能介绍下你所知道和使用过的spark调优吗？**
+​		对每一个新批次写入都将创建相应数据文件的新版本（新的FileSlice），新版本文件包括旧版本文件的记录以及来自传入批次的记录（全量最新）
 
-    **资源参数调优：**
+​		假设我们有3个文件组，其中包含如下数据文件
 
-    ​		num-executors: 设置spark作业总共要用多少个executor进程来执行
+<img src="../image/interview/hudi/COW文件组.png" alt="image-202302071417264" style="zoom:50%;" />
 
-    ​		executors-memory: 设置每个executor进程的内存
+​		进行一批新的写入，在索引后，发现这些记录与File group1和File group2匹配，然后由新的插入，将为其创建一个新的文件组（File group4）。
 
-    ​		executors-cores: 设置每个executor进程的cpu core数量
+<img src="../image/interview/hudi/COW update后.png" alt="image-2023020714202799" style="zoom:50%;" />
 
-    ​		driver-memory: 设置driver进程的内存
+​		因此data_file1和data_file2都将创建更新的版本，**data_file1 V2是data_file1 V1的内容与data_file1中传入批次匹配记录的记录合并。**
 
-    ​		spark.default.parallelism: 设置每个stage的默认task数量
+​		由于在写入期间进行合并，COW会产生一些写入延迟。但是COW的优势在于它的简单性，不需要其他表服务（如压缩），也相对容易调试。
 
-    **开发调优：**
+#### 2.4.2 Merge On Read
 
-    ​	避免创建重复的RDD
+​		MOR表中，包含列存的基本文件（.parquet）和行存的增量日志文件（基于行的avro格式，.log.*）
 
-    ​	尽可能复用同一个RDD
+​		顾名思义，MOR表的合并成本在读取端。因此在写入期间不会合并或创建新的数据文件版本。标记/索引完成后，对于具有要更新记录的现有数据文件，Hudi创建增量日志文件并适当命名它们，以便它们都属于一个文件组。
 
-    ​	对多次使用的RDD进行持久化
+![image-20230207144129058](../image/interview/hudi/MOR compaction.png)
 
-    ​	尽量避免使用shuffle类算子
+​		**读取端将实时合并基本文件及其各自的增量日志文件。每次的读取延迟都比较高（因为查询时进行合并）**，所以Hudi使用压缩机制来将数据文件和日志文件合并在一起并创建更新版本的数据文件。
 
-    ​	使用map-side预聚合的shuffle操作		
+​		用户可以选择内联或异步模式运行压缩。Hudi也提供了不同的压缩策略供用户选择，最常用的一种是基于提交的数量。例如可以将压缩的最大增量日志配置为4，在进行4次增量写入后，将对数据文件进行压缩并创建更新版本的数据文件。压缩完成后，读取端只需要读取最新的数据文件，而不必关心旧版本文件。
 
-    ​	使用高性能的算子：
+​		MOR表的写入行为，依据index的不同会有细微的差别：
 
-    ​		a.使用reduceByKey/aggregateByKey替代groupByKey
+- 对于BloomFilter这种无法对log file生成index的索引方案，对于insert消息仍然会写base file（parquet format），只有update消息会append log 文件（因为base file已经记录该update消息的FileGroup ID）。
+- 对于可以对logfile生成index的索引方案，例如Flink writer中基于state的索引，每次写入都是log format，并且会不断追加和roll over。
 
-    ​		b.使用mapPartition替代普通map
+#### 2.4.3 COW与MOR对比
 
-    ​		c.使用foreachPartitions替代foreach
+|                     | Copy on Write             | Merge on Read        |
+| ------------------- | ------------------------- | -------------------- |
+| 数据延迟            | 高                        | 低                   |
+| 查询延迟            | 低                        | 高                   |
+| Update(I/O)更新成本 | 高（重写整个Parquet文件） | 低（追加到增量日志） |
+| Parquet文件大小     | 低（更新成本I/O高）       | 较大（低更新成本）   |
+| 写放大              | 大                        | 低（取决于压缩策略） |
 
-    ​		d.使用filter之后进行coalesce操作
+​		**COW适合读行为较多的场景，MOR适合写较多的场景。**
 
-    ​		e.使用repartitionAndSortWithinPartitions替代repartition与sort类操作
 
-    ​	广播大变量：在算子函数中使用到外部变量时，默认情况下，Spark会将该变量复制多个副本，通过网络传输到task中，此时每个task都有一个变量副本。如果变量本身比较大的话（比如100M，甚至1G），那么大量的变量副本在网络中传输的性能开销，以及在各个节点的executor中占用过多内存导致的频繁GC，都会极大影响性能。
 
-    
+### 2.5 查询类型（Query Types）
 
-15. **如何使用spark实现topN的获取**
+#### 2.5.1 Snapshot Queries
 
-    （1）按照key对数据进行聚合（groupByKey）
+​		快照查询，可以查询指定commit/delta commit即时操作后表的最新快照。
 
-    （2）将value转换为数组，利用scala的sortBy或者sortWith进行排序（mapValues）
+​		在读时合并（MOR）表的情况下，它通过**即时合并最新文件片的基本文件和增量文件来提供近实时表**（几分钟）。
 
-    
+​		对于写时复制（COW），它可以替代现有的parquet表（或相同基本文件类型的表），同时提供铺色如图/delete和其他写入方面的功能，可以理解为**查询最新版本的Parquet数据文件**。
 
-16. **spark从HDFS读入文件默认是怎样分区的？**
+​		下图是COW的快照查询：
 
-    spark从HDFS读入文件的分区数默认等于HDFS文件的块数（blocks），HDFS中的block是分布式存储的最小单元。如果我们上传一个30GB的非压缩文件到HDFS，HDFS默认的容量大小128MB，因此文件在HDFS上会被分为235块（30GB/128MB）；spark读取SparkContent.textFile()读取该文件，默认分区等于块数即235。
+![image-20230207153636506](../image/interview/hudi/COW快照查询.png)
 
-    
+#### 2.5.2 Incremental Queries
 
-17. **spark如何设置合理分区数**
+​		增量查询，可以查询给定commit/delta commit即时操作以来新写入的数据。有效的提供变更流来启用增量数据管道。
 
-    （1）分区越多越好吗？
+#### 2.5.3 Read Optimized Queries
 
-    不是的，分区数太多意味着任务数太多，每次调度任务也是很耗时的，所以分区太多会导致总统耗时增多。
+​		读优化查询，可查看给定的commit/compact即时操作的表的最新快照。**只读取base文件，不读取log文件**。因此读取效率和COW表相同，但读取到的数据可能不是最新的。
 
-    （2）分区数太少又什么影响？
+​		下图是MOR表的快照查询与读优化查询的对比：
 
-    分区太少的话，会导致一些节点没有分配到任务；另一方面，分区数少则每个分区要处理的数据量就会增大，从而对每个结点的内存要求就会提高；还有分区数不合理，会导致数据倾斜的问题。
+![image-20230207154354761](../image/interview/hudi/MOR 优化查询.png)
 
-    （3）合理的分区数是多少？如何设置？
+## 3.表类型
 
-    总核数=executor-cores * num-executor
+### 3.1 COW（Copy on Write）
 
-    一般合理的分区数设置为总核数的2～3倍
+​		COW进行update时先将要更新的数据文件进行copy，再对其内容进行更新，最后写入新文件。
 
-    （4）partition和task的关系
+![image-20230207172830253](../image/interview/hudi/Upsert本质.png)
 
-    Task是spark的任务运行单元，通常一个partition对应一个task。有失败时另行恢复。
+​		无论是COW还是MOR，在流式数仓中都需要tagging和merge的操作。当Upsert事务到来的时候，首先需要从base数据库中进行查找，判断是insert操作还是update操作，如果没有重复数据，则追加写入文件，否则需要拷贝，对其内容更新后，再写入新的文件（COW）。
 
-18. 
+#### 3.1.1 举例COW表的upsert过程
 
-19. 
+​		首先，假设向一张Hudi表中预先写入5行数据：
 
-20. 
+| txn_id | user_id | item_id | amount | date     |
+| ------ | ------- | ------- | ------ | -------- |
+| 1      | 1       | 1       | 2      | 20230101 |
+| 2      | 2       | 1       | 1      | 20230101 |
+| 3      | 1       | 2       | 3      | 20230101 |
+| 4      | 1       | 3       | 1      | 20230102 |
+| 5      | 2       | 3       | 2      | 20230102 |
 
+在hdfs的目录结构：
 
+```
+warehouse
+├── .hoodie
+├── 20220101
+│   └── fileId1_001.parquet
+└── 20220102
+    └── fileId2_001.parquet
+```
 
-#### 4.2 spark编程
+​		文件名分2部分：隐藏的.hoodie目录，分区目录，001时commitId。
 
+​		画成图如下：
 
+​		![image-20230207160425647](../image/interview/hudi/COW demo 数据分区.png)
 
-## 5. Flink
+​		属于20230101分区的3条数据保存一个parquet文件：fileId1_001.parquet，属于20230102分区的2条数据则保存在另一个parquet文件：fileId2_001.parquet
 
-#### 5.1 核心概念和基础考察
+​		再写入3条新的数据，其中2条数据是新增，1条数据是更新
 
-1. Flink的特性
+| txn_id | user_id | item_id | amount | date     |
+| ------ | ------- | ------- | ------ | -------- |
+| 3      | 1       | 2       | 5      | 20230101 |
+| 6      | 1       | 4       | 1      | 20230103 |
+| 7      | 2       | 3       | 2      | 20230103 |
 
-   支持高吞吐、低延迟、高性能的流处理
+​		写入完成后，hdfs文件目录变成：
 
-   支持带有事件时间的窗口（Window）操作
+```
+warehouse
+├── .hoodie
+├── 20220101
+│   ├── fileId1_001.parquet
+│   └── fileId1_002.parquet
+├── 20220102
+│   └── fileId2_001.parquet
+└── 20220103
+    └── fileId3_001.parquet
+```
 
-   支持有状态计算的Exactly-once语义
+​		画成图如下：
 
-   支持高度灵活的窗口（Window）操作，支持基于time、count、session以及data-driven的窗口操作
+![image-20230207160957497](../image/interview/hudi/COW demo upsert后.png)
 
-   支持基于轻量级分布式快照（Snapshot）实现的容错
+​		更新的那一条记录，被写入到了同一个分区下的新文件：fileId1_002.parquet，这个新文件的fileId和上一个相同，只不过commitId变成了002。同时还有一个新文件：fileId3_001.parquet
 
-   一个运行时同时支持Batch on Streaming处理和Streaming处理
+​		是如何读取更新后的数据呢？Hudi客户端在读取这张表时，会根据.hoodie目录下保存的元数据信息，获知需要读取的文件是：fileId1_002.parquet，fileId2_001.parquet， fileId3_002.parquet。**这些文件里保存的正式最新的数据**。
 
-   Flink在JVM内部实现了自己的内存管理
+![image-20230207161702980](../image/interview/hudi/COW demo 读取.png)
 
-   支持迭代计算
+#### 3.1.2 COW Upsert步骤
 
-   支持程序自动优化：避免特定情况下Shuffle、排序等昂贵操作、中间结果有必要进行缓存
+​		Upsert的过程整体分为3步：
 
-2. 
+1. 根据partitionPath进行重新分区
+2. 根据recordKey确定哪些记录需要插入，哪些记录需要更新。对于需要更新的记录，还需要找到旧的记录所在的文件。（这个过程被称为tagging）
+3. 把记录写入实际的文件
 
-3. 
+**Step1. 重新分区**
 
-#### 5.2 应用架构
+​		重新分区的依据就是partitionPath，partitionPath相同的record都会被分到同一个partition，并交给一个executor负责写入。配置项partitionpath_field_opt_key就是用来制定record里面哪个字段作为partitionPath。
 
-1. **怎么提交实时任务的，有多少Job Manager？**
+**Step2. Tagging**
 
-   使用yarn session模式提交任务。每次提交都会创建一个新的Flink集群，为每个job提供一个yarn-session，任务之间相互独立，互不影响，方便管理。任务执行完成之后创建的集群也会消失。
+​		tagging是写入过程中最重要的一步，核心逻辑是确定每条record是insert还是update，如果是update，则需要定位到上次写入到fileid（文件组id）。那么如何判断是否是update呢？首先，recordKey是用户写入时指定的，hudi**使用recordKey与base的数据进行对比，如果找到key相同的record则认为这次写入时update，否则是insert**，这个查询过程就是tagging。
 
-   线上命令脚本如下：
+​		当然在已有的数据中寻找相同的key是非常耗时的，所以hudi引入了索引。另外**对update的record在写入时会拷贝原有的旧文件的fileid，用其生产新的文件。**
 
-   bin/yarn-session.sh -n 7 -s 8 -jm 3072 -tm 32768 -qu root.\*.* -nm \*-* -d 
+**Step3. 写入文件**
 
-   其中申请7个taskManager，每个8核，每个taskmanager有32768M内存。
+​		写入文件的过程分区insert和update两部分，update会使用原来的fileid进行写入，insert生成新的fileid（uuid）进行写入。**如果是COW的方式则会拷贝原来的文件，并将其与新update数据进行merge后写入**。如果是MOR则是将update数据直接写入，然后再异步进行merge。
 
-   集群默认只有一个Job Manager。但为了防止单点故障，我们配置了高可用。我们一般配置一个主Job Manager，两个备用Job Manager，然后结合Zookeeper的使用，来达到高可用。
+#### 3.1.3 过程优化
 
-   
+​		upsert或者delete都免不了两个过程：1.定位操作文件；2.合并更新文件
 
-2. **Flink最大并行度是如何确定的**
+**定位文件**
 
-   Spark：Executor数 * 每个Executor中cup core
+​		定位文件，也就是tagging过程是非常耗时的，需要找到当前操作要影响哪些文件，再读取文件中的key进行依次对比。如果在查找中可以跳过大部分的文件，那么效率会变的很高，如何跳过绝大部分文件呢？
 
-   Flink：TaskManager数 * 每个TaskManager中Task Slot
+1. min-max索引
 
-   
+   不论是Delta Lake、Hudi还是Iceberg，都存在min-max索引，但是如果数据分布比较均匀，即每个文件文件列的upper_bounds和lower_bounds的range很大，那么min-max索引其实是失效的。但如果文件已排序，则会非常高效
 
-3. **集群部署模式类型对比**
+2. BloomFilter索引
 
-   根据以下两种条件将集群部署模式分为三种类型：
+   BloomFilter虽然可以快速的判断record是否在文件中，但其存在假阳性的问题，如果随着数据量的增加，其性能也是下降的。
 
-   ​	a.集群的生命周期和资源隔离
+**合并文件**
 
-   ​	b.根据程序main()方法执行在Client还是JobManager
+​		合并文件的过程实质上就是join的过程：
 
-   （1）**Seesion Mode**
+1. 最高效的过程当然是BHJ（Broadcast Hash Join），但是其需要满足delta数据可以装入内存进行广播
+2. 最常用的还是SMJ（Sort Merge Join），SMJ进行合并是代价比较大的，但如果数据的组织方式原本是有序的其实现也会变的高效。
 
-   ​		共享JobManager和TaskManager，所有提交的Job都在一个Runtime中运行，JobManager的生命周期不受提交的Job的影响，会长期运行
+### 3.2 MOR（Merge on Read）
 
-   ​		优点：资源充分分享，提升资源利用率；Job在Flink Session集群中管理，运维简单。
+​		MOR在进行update时直接写入新的文件，在读取时再将delta文件与base文件进行合并。
 
-   ​		缺点：资源隔离相对较差，非Native类型部署，TM不易拓展，Slot计算资源伸缩较差
+​		MOR是Hudi最初开源时尚处于“实验阶段”的新功能，在开源后的0.3.5版本开始才完成，**现在则是Hudi最常用的表类型**。
 
-   ​		提交任务脚本：
+> Merge on Read是对Copy on Write的优化，优化了什么呢？**主要是写入性能**。
 
-   ```shell
-   $./bin/yarn-seesion.sh -jm 1024m -tm 4096m
-   ```
+#### 3.2.1 分析COW瓶颈
 
-   （2）**Per-Job Mode**
+​		导致COW表写入慢的原因，是COW每次写入时，会把新写入的数据和老数据合并以后，再写成新的文件。单单是写入过程（不包含前期的repatition和tagging过程），就包含至少3个步骤：
 
-   ​		独享JobManager与TaskManger，好比为每个Job单独启动一个Runtime；TM中Slot资源根据Job指定；JobManager的生命周期和Job生命周期绑定。
+1. 读取老数据的parquet文件（涉及parquet文件解码，不轻松）
+2. 将老数据和新数据合并
+3. 将合并后的数据重新写成parquet文件（又涉及parquet文件编码，也不轻松）
 
-   ​		优点：Job和Job之间资源隔离充分；资源根据Job需要进行申请，TM Slots数量可以不同
+种种原因导致COW表的写入速度始终快不起来，限制了其在时效性要求高，写入量巨大的场景下的应用。
 
-   ​		缺点：资源相对比较浪费，JobManager需要消耗资源；Job管理完全交给ClusterManger，管理复杂
+#### 3.2.2 MOR Upsert过程
 
-   ​		提交任务脚本：
+​		为了解决COW表写入速度上的瓶颈，Hudi采用了另一种写入方式：**upsert时把变更内容写入log文件，然后定期合并log文件和base文件**。这样的好处是避免了写入时读取老数据，也避免了parquet文件不轻松的编解码过程，只需要把变更记录写入一个文件即可（而且是顺序写入）
 
-   ```shell
-   $./bin/flink run -m yarn-cluster -p 4 -yjm 1024m -ytm 4096m ./examples/batch/WordCount.jar
-   ```
+```
+warehouse
+├── .hoodie
+├── 20220101
+│   ├── fileId1_001.parquet
+│   ├── .fileId1_20220312163419285.log
+│   └── .fileId1_20220312172212361.log
+└── 20220102
+    ├── fileId2_001.parquet
+    └── .fileId2_20220312163512913.log
+```
 
-   （3）**Application Mode（1.11版本提出）**
+​		log文件包含写入的时间戳
 
-   ​		Application的main()运行在Cluster上，而不在客户端；每个Application对应一个Runtime，Application中可以含有多个Job；
+​		这样写入固然是轻松了，但怎么读取到最新的数据呢？为了解决读取最新数据的问题，Hudi提供了好几种机制，但从原理上来说只有两种：
 
-   ​		a.每个Application对应一个JobManager，且可以运行多个Job
+- **读取数据时，同时从base文件和log文件读取，并把两边的数据合并**
+- **定期地、异步地把log文件的数据合并到base文件（这个过程被称为compaction）**
 
-   ​		b.客户端无需将Dependencies上传到JobManager，仅负责管理Job的提交与管理
+​		Hudi默认配置就是同时使用这两种机制，即：**读取时merge，同时定期地compact。**
 
-   ​		c.main()方法运行JobManager中，将JobGraph的生成放在集群上运行，客户端压力降低
+​		在读取时合并数据，听起来很影响效率，事实也是如此，因为实时合并的实现方式是把所有log文件读入内存，放在一个HashMap里，然后遍历base文件，把base数据和缓存在内存里的log数据进行join，最后才得到合并后的结果，难免会影响到读取效率。
 
-   ​		优点：有效降低带宽消耗和客户端负载；Application实现资源隔离，Application中显现资源共享
+​		COW影响写入，MOR影响读取，那有没有什么办法可以兼顾读写，鱼和熊掌能不能兼得？目前来说不能，好在Hudi把选择权留给了用户，让用户可以根据自身的业务需求，选择不同的query类型。
 
-   ​		缺点：仅支持Yarn和Kubunetes
+## 4.事务功能（Transactional）
 
-   ​		提交任务脚本：
+​		Hudi事务功能被称为Timeline，因为Hudi把所有对一张表的操作都保存在一个时间线的对象里面。
 
-   ```shell
-   $./bin/flink run-application -t yarn-application \
-   ​			-Djobmanager.memory.process.size=2048m \
-   ​			-Dtaskmanager.memory.process.size=4096m \
-   ​			-Dyarn.provided.lib.dirs="hfs://node02:8020/flink-training/flink-1.11.1" \
-   ​			./MyApplication.jar
-   ```
+### 4.1 Hudi提供的事务功能
 
-4. 
+​		从用户角度，Hudi提供的事务相关能力主要是这些：
 
-5. 
+| 特性     | 功能                                               |
+| -------- | -------------------------------------------------- |
+| 原子性   | 写入即时失败，也不会造成数据损坏                   |
+| 隔离性   | 读写分离，写入不影响读取，不会读到写入中途的数据   |
+| 回滚     | 可以回滚变更，把数据恢复到旧版本                   |
+| 时间旅行 | 可以读取旧版本的数据（但太老的版本会被清理掉）     |
+| 存档     | 可以长期保存旧版本数据（存档的版本不会被自动清理） |
+| 增量读取 | 可以读取任意两个版本之间的差分数据                 |
 
-#### 5.3 压测和监控
+### 4.2事务实现原理
 
-#### 5.4 Flink编程
+​		以COW表为主分析一下事务的实现原理，还是以上面COW中demo进行分析。
+
+![image-20230207190424197](../image/interview/hudi/事务分析对比.png)
+
+​		Hudi在这张表的timeline（实际存放在.hoodie目录下）会记录v1和v2对应的文件列表。当client读取数据时，首先会查看timeline里最新的commit是哪个？从最新的commit里获得对应的文件列表，再去这些文件读取真正的数据。
+
+​		Hudi通过这种方式实现了多版本隔离的能力。当一个client正在读取v1的数据时，另一个client可以同时写入新的数据，新的数据会被写入新的文件里，不影响v1用到的数据文件。只有当数据全部写完以后，v2才会被commit到timeline里面。后续client再读取时，读到的就是v2的数据。
+
+​		尽管Hudi具备多版本数据管理的能力，但旧版本的数据不会无限制地保留下去。Hudi会在新的commit完成时开始清理旧的数据，默认的策略是**清理早于10个commit前的数据**。
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
